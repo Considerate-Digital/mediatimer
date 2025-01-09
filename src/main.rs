@@ -26,9 +26,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for (key, value) in env::vars() {
         match key.as_str() {
-            "MLWEEKDAYS" => println!("{}", value),
-            "MLSTART" => println!("{}", value),
-            "MLEND" => println!("{}", value),
+            "ML_WEEKDAYS" => println!("{}", value),
+            "ML_START" => println!("{}", value),
+            "ML_END" => println!("{}", value),
             _ => {}
         }
     }
