@@ -3,6 +3,7 @@ use clokwerk::{
     Interval::*
 };
 use std::{
+    fmt,
     io,
     thread,
     time::Duration,
@@ -24,9 +25,68 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
 };
 use ratatui_explorer::{FileExplorer, Theme};
+use strum::Display;
+
+mod proctype;
+use crate::proctype::ProcTypeWidget;
+
+#[derive(Debug, Display)]
+enum ProcType {
+    Media,
+    Browser,
+    Executable,
+    Java
+}
+
+#[derive( Debug)]
+enum Weekday {
+    Monday(Vec<(u32, u32)>),
+    Tuesday(Vec<(u32, u32)>),
+    Wednesday(Vec<(u32, u32)>),
+    Thursday(Vec<(u32, u32)>),
+    Friday(Vec<(u32, u32)>),
+    Saturday(Vec<(u32, u32)>),
+    Sunday(Vec<(u32, u32)>),
+}
+
+type Timings = Vec<Weekday>;
+
+/// This program runs one task at custom intervals. The task can also be looped.
+/// Commonly this is used for playing media files at certain times.
+/// The Task struct is the main set of instructions that are written out into an env file to be 
+/// interpreted in future by the init program.
+#[derive( Debug)]
+struct Task<'a> {
+    proc_type: ProcType,
+    auto_loop: bool,
+    timings: Timings,
+    file: &'a Path
+}
+
+impl <'a> Task<'a> {
+    fn new(proc_type: ProcType, auto_loop: bool, timings: Timings, file: &'a Path) -> Self {
+        Task {
+            proc_type,
+            auto_loop,
+            timings,
+            file
+        }
+    }
+    fn set_loop(&mut self, auto_loop: bool) {
+        self.auto_loop = auto_loop;
+    }
+    fn set_proc_type(&mut self, p_type: ProcType) {
+        self.proc_type = p_type;
+    }
+    fn set_weekday(&mut self, wd: Weekday) {
+        self.timings.push(wd);
+    }
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // useful for getting current settings
     // use this dir .env for testing
+    /*
     dotenvy::from_path(Path::new("/home/alex/medialoop/src/.env"))?;
 
     for (key, value) in env::vars() {
@@ -37,7 +97,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => {}
         }
     }
+    */
+
+    //grep -iE '/dev/sd(a|b|c|d)' /proc/mounts
+    //
+    //
+    // check for usb devices
+    // mount all usb devices /mnt/sda /mnt/sdb etc.
     
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -49,23 +117,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // set the current dir of the file explorer -- identify and prefer a usb
     file_explorer.set_cwd("/home/alex/").unwrap();
+    
+    let proctype_selection = ProcTypeWidget::default().run(terminal);
+    println!("{:?}", proctype_selection);
+    
 
-        /*
-    thread::spawn(|| loop {
-        let event = event::read();
-        if let Ok(Event::Key(key)) = event {
-            let key_code = key.code;
-            println!("Key: {}", key_code);
-
-        }
-
-    });
-
-    thread::sleep(Duration::from_millis(5000));
-        */
-
-
-    let mut selected_file = String::with_capacity(20);
+    let mut terminal = ratatui::init();
     loop {
             terminal.draw(|f| {
                 let size = f.size();
@@ -100,7 +157,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
    
     }
-
+    
+    let mut selected_file = String::with_capacity(20);
 
     loop {
         terminal.draw(|f| {
@@ -128,6 +186,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("File: {}, Dir: {}", current_file.name(), current_dir.display());
 */
     println!("selected file: {}", selected_file);
+    // if the selected file is on a usb stick
+    // edit fstab to automount that usb
      
 
     disable_raw_mode()?;

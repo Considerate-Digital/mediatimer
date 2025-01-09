@@ -359,6 +359,7 @@ dependencies = [
  "dotenvy",
  "ratatui",
  "ratatui-explorer",
+ "strum",
 ]
 
 [[package]]
