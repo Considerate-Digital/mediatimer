@@ -26,6 +26,7 @@ const TEXT_FG_COLOR: Color = SLATE.c200;
 
 pub struct ProcTypeWidget {
     should_exit: bool,
+    selected_type: ProcType,
     proc_type_entries: ProcTypeList
 }
 
@@ -69,7 +70,7 @@ impl Default for ProcTypeWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
-            // TODO fill this in correctly
+            selected_type: ProcType::Media,
             proc_type_entries: ProcTypeList::from_iter([
                 (ProcType::Media, "A media file. Most video and audio formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
@@ -83,14 +84,13 @@ impl Default for ProcTypeWidget {
 
 impl ProcTypeWidget {
     pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
-        let mut proc_type = ProcType::Media;
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
-                let proc_type = self.handle_key(key);
+                self.handle_key(key);
             };
         }
-        Ok(proc_type)
+        Ok(self.selected_type)
     }
 
     fn handle_key(&mut self, key: KeyEvent) {
@@ -106,24 +106,22 @@ impl ProcTypeWidget {
             KeyCode::Char('G') | KeyCode::End => self.select_last(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                 // add code to select the list item
+                self.set_current_type();
                 self.should_exit = true;
-                self.return_current()
             }
             _ => {}
         }
     }
     
-    fn return_current(&mut self) -> proc_type {
-        let mut proc_type = ProcType::Media;
+    fn set_current_type(&mut self) {
         if let Some(i) = self.proc_type_entries.state.selected() {
             match self.proc_type_entries.list[i].proc_type {
-                ProcType::Media => proc_type = ProcType::Media,
-                ProcType::Browser => proc_type = ProcType::Browser,
-                ProcType::Executable => proc_type = ProcType::Executable,
-                ProcType::Java => proc_type = ProcType::Java
+                ProcType::Media => self.selected_type = ProcType::Media,
+                ProcType::Browser => self.selected_type = ProcType::Browser,
+                ProcType::Executable => self.selected_type = ProcType::Executable,
+                ProcType::Java => self.selected_type = ProcType::Java
             }
         }
-        proc_type
     }
 
     fn select_none(&mut self) {

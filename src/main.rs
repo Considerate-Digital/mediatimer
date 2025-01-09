@@ -99,12 +99,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     */
 
-    //grep -iE '/dev/sd(a|b|c|d)' /proc/mounts
-    //
-    //
-    // check for usb devices
-    // mount all usb devices /mnt/sda /mnt/sdb etc.
-    
+
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -117,10 +112,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // set the current dir of the file explorer -- identify and prefer a usb
     file_explorer.set_cwd("/home/alex/").unwrap();
-    
-    let proctype_selection = ProcTypeWidget::default().run(terminal);
-    println!("{:?}", proctype_selection);
-    
+   
+    // returns Ok(ProcType) e.g. Ok(ProcType::Media)
+    let proctype = ProcTypeWidget::default().run(terminal);
 
     let mut terminal = ratatui::init();
     loop {
@@ -185,7 +179,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let current_dir = file_explorer.cwd();
     println!("File: {}, Dir: {}", current_file.name(), current_dir.display());
 */
-    println!("selected file: {}", selected_file);
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
      
