@@ -15,7 +15,13 @@ use ratatui::{
     DefaultTerminal,
 };
 use std::error::Error;
+use std::path::{
+    PathBuf,
+    Path
+};
 use crate::ProcType;
+
+use ratatui_explorer::{FileExplorer, Theme};
 
 const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
 const NORMAL_ROW_BG: Color = SLATE.c950;
@@ -24,87 +30,42 @@ const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier:
 const TEXT_FG_COLOR: Color = SLATE.c200;
 
 
-pub struct ProcTypeWidget {
+pub struct FileSelectWidget {
     should_exit: bool,
-    selected_type: ProcType,
-    proc_type_entries: ProcTypeList
+    file_explorer: FileExplorer,
+    selected_file: FileSelect,
 }
 
-struct ProcTypeList {
-    list: Vec<ProcTypeEntry>,
-    state: ListState
-}
+type FileSelect = PathBuf;
 
-impl FromIterator<(ProcType, &'static str)> for ProcTypeList {
-    fn from_iter<I: IntoIterator<Item = (ProcType, &'static str)>>(iter: I) -> Self {
-        let list = iter
-            .into_iter()
-            .map(|(proc_type, info)| ProcTypeEntry::new(proc_type, info))
-            .collect();
-        let state = ListState::default();
-        Self { list, state }
-    }
-}
-struct ProcTypeEntry {
-    proc_type: ProcType,
-    info: String,
-}
-
-impl From<&ProcTypeEntry> for ListItem<'_> {
-    fn from(value: &ProcTypeEntry) -> Self {
-        let line = Line::styled(format!("{}", value.proc_type.to_string()), TEXT_FG_COLOR);
-        ListItem::new(line)
-    }
-}
-
-impl ProcTypeEntry {
-    fn new(proc_type: ProcType, info: &str) -> Self {
-        Self {
-            proc_type,
-            info: info.to_string()
-        }
-    }
-}
-
-impl Default for ProcTypeWidget {
+impl Default for FileSelectWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
-            selected_type: ProcType::Media,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Most video and audio formats are accepted."),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable."),
-                (ProcType::Java, "A complied Java (*.class) file.")
-
-            ]),
+            file_explorer: FileExplorer::new().unwrap(),
+            selected_file: Path::new("./").to_path_buf(),
         }
     }
 }
 
-impl ProcTypeWidget {
-    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
+impl FileSelectWidget {
+    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
                 self.handle_key(key);
             };
         }
-        Ok(self.selected_type)
+        Ok(self.selected_file)
     }
 
     fn handle_key(&mut self, key: KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
         }
+        let is_dir = self.file_explorer.current().is_dir();
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.should_exit = true,
-            KeyCode::Char('h') | KeyCode::Left => self.select_none(),
-            KeyCode::Char('j') | KeyCode::Down => self.select_next(),
-            KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
-            KeyCode::Char('g') | KeyCode::Home => self.select_first(),
-            KeyCode::Char('G') | KeyCode::End => self.select_last(),
-            KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
+            KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter if is_dir == false => {
                 // add code to select the list item
                 self.set_current_type();
                 self.should_exit = true;
@@ -114,36 +75,19 @@ impl ProcTypeWidget {
     }
     
     fn set_current_type(&mut self) {
-        if let Some(i) = self.proc_type_entries.state.selected() {
-            match self.proc_type_entries.list[i].proc_type {
-                ProcType::Media => self.selected_type = ProcType::Media,
-                ProcType::Browser => self.selected_type = ProcType::Browser,
-                ProcType::Executable => self.selected_type = ProcType::Executable,
-                ProcType::Java => self.selected_type = ProcType::Java
-            }
-        }
+        self.selected_file = self.file_explorer.current().path().to_path_buf();
     }
-
-    fn select_none(&mut self) {
-        self.proc_type_entries.state.select(None);
+    /*
+    fn find_likely_usb() -> Option<&Path> {
+       // use this function to identify and examine a likely usb mount 
+       // first test if any usbs have been mounted using the medialoop_init program
+       // then check for any usb mount points
     }
-    fn select_next(&mut self) {
-        self.proc_type_entries.state.select_next();
-    }
-    fn select_previous(&mut self) {
-        self.proc_type_entries.state.select_previous();
-    }
-    fn select_first(&mut self) {
-        self.proc_type_entries.state.select_first();
-    }
-    fn select_last(&mut self) {
-        self.proc_type_entries.state.select_last();
-    }
-
+    */
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("What do you want to run?")
+        Paragraph::new("Select a media file")
             .bold()
             .centered()
             .render(area, buf);
@@ -154,10 +98,31 @@ impl ProcTypeWidget {
             .centered()
             .render(area, buf);
     }
+    
+    fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
+        let theme = Theme::default().add_default_title();
+        let mut file_explorer = FileExplorer::with_theme(theme).unwrap();
 
-    fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
+        /* if let Some(usb) = find_likely_usb() {
+         *      file_explorer.set_cwd(usb.to_str()).unwrap();
+         * } else {
+         *      file_explorer.set_cwd("./").unwrap();
+         * }
+         */
+    
+
+        // temporary
+        file_explorer.set_cwd("./").unwrap();
+
+
+
+        file_explorer.widget();
+
+    }
+    /*
+    fn render_file_(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::new()
-            .title(Line::raw("Select your file type").centered())
+            .title(Line::raw("Find and select your media file").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
@@ -184,14 +149,17 @@ impl ProcTypeWidget {
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.proc_type_entries.state);
     }
+    */
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
-        let info = if let Some(i) = self.proc_type_entries.state.selected() {
-            self.proc_type_entries.list[i].info.clone()
-        } else {
-            "Nothing selected...".to_string()
-        };
+        let text = vec![ 
+            Line::from("Select a media file to loop using our file explorer."),
+            Line::from("Use the keyboard arrows and the 'Enter' key to find the file you want to loop."),
+            Line::from("Press the 'Enter' key to select the file."),
+            Line::from("You can exit the file explorer at any time by pressing 'ESC' or 'q'."),
+
+        ];
 
         // show the list item's info under the list
         let block = Block::new()
@@ -203,7 +171,7 @@ impl ProcTypeWidget {
             .padding(Padding::horizontal(1));
 
         // now render the item info
-        Paragraph::new(info)
+        Paragraph::new(text)
             .block(block)
             .fg(TEXT_FG_COLOR)
             .wrap(Wrap { trim: false })
@@ -220,7 +188,7 @@ const fn alternate_colors(i: usize) -> Color {
     }
 }
 
-impl Widget for &mut ProcTypeWidget {
+impl Widget for &mut FileSelectWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
@@ -229,15 +197,15 @@ impl Widget for &mut ProcTypeWidget {
         ])
         .areas(area);
 
-        let [list_area, item_area] = Layout::vertical([
+        let [file_area, item_area] = Layout::vertical([
             Constraint::Fill(3),
             Constraint::Fill(1)
         ])
         .areas(main_area);
 
-        ProcTypeWidget::render_header(header_area, buf);
-        ProcTypeWidget::render_footer(footer_area, buf);
-        self.render_list(list_area, buf);
+        FileSelectWidget::render_header(header_area, buf);
+        FileSelectWidget::render_footer(footer_area, buf);
+        self.render_file_explorer(file_area, buf);
         self.render_selected_item(item_area, buf);
     }
 

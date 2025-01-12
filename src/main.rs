@@ -30,6 +30,10 @@ use strum::Display;
 mod proctype;
 use crate::proctype::ProcTypeWidget;
 
+mod fileselect;
+use crate::fileselect::FileSelectWidget;
+
+
 #[derive(Debug, Display)]
 enum ProcType {
     Media,
@@ -107,15 +111,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = ratatui::init();
 
-    let theme = Theme::default().add_default_title();
-    let mut file_explorer = FileExplorer::with_theme(theme)?;
-
-    // set the current dir of the file explorer -- identify and prefer a usb
-    file_explorer.set_cwd("/home/alex/").unwrap();
-   
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
     let proctype = ProcTypeWidget::default().run(terminal);
 
+    let mut terminal = ratatui::init();
+    // return Ok(FileSelectType)
+    let file_path = FileSelectWidget::default().run(terminal);
+    
     let mut terminal = ratatui::init();
     loop {
             terminal.draw(|f| {
@@ -151,7 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
    
     }
-    
+    /* 
     let mut selected_file = String::with_capacity(20);
 
     loop {
@@ -173,6 +175,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         file_explorer.handle(&event?);
     }
+    */
     
 /*
     let current_file = file_explorer.current();
