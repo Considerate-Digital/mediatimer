@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut terminal = ratatui::init();
     // return Ok(FileSelectType)
-    let file_path = FileSelectWidget::default().run(terminal);
+    let mut file_path = FileSelectWidget::default().run(terminal);
     
     let mut terminal = ratatui::init();
     loop {

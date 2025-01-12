@@ -14,10 +14,14 @@ use ratatui::{
     },
     DefaultTerminal,
 };
-use std::error::Error;
-use std::path::{
+use std::{
+    error::Error,
+    rc::Rc,
+    cell::RefCell,
+    path::{
     PathBuf,
     Path
+    },
 };
 use crate::ProcType;
 
@@ -49,12 +53,29 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
+    /*
+    pub fn new() -> Self {
+        Self {
+            should_exit: false,
+            file_explorer: FileExplorer::new().unwrap(),
+            selected_file: Path::new("./").to_path_buf(),
+        }
+    }
+    */
+
     pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
+        self.setup_file_explorer();
+
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
-            if let Event::Key(key) = event::read()? {
+            let event = event::read()?;
+            
+            self.file_explorer.handle(&event)?;
+
+            if let Event::Key(key) = event {
                 self.handle_key(key);
             };
+
         }
         Ok(self.selected_file)
     }
@@ -65,8 +86,13 @@ impl FileSelectWidget {
         }
         let is_dir = self.file_explorer.current().is_dir();
         match key.code {
-            KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter if is_dir == false => {
-                // add code to select the list item
+            KeyCode::Char('q') | KeyCode::Esc => {
+                self.should_exit = true;
+            }
+            KeyCode::Enter if is_dir == false => {
+                // check that it is not "../" or "./"
+                println!("{:?}", self.file_explorer.current().name());
+
                 self.set_current_type();
                 self.should_exit = true;
             }
@@ -98,25 +124,29 @@ impl FileSelectWidget {
             .centered()
             .render(area, buf);
     }
-    
-    fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
-        let theme = Theme::default().add_default_title();
-        let mut file_explorer = FileExplorer::with_theme(theme).unwrap();
 
+    fn create_file_explorer() {
+        let theme = Theme::default().add_default_title();
+                FileExplorer::with_theme(theme);
+    }
+
+    fn setup_file_explorer(&mut self) {
         /* if let Some(usb) = find_likely_usb() {
-         *      file_explorer.set_cwd(usb.to_str()).unwrap();
+         *      self.file_explorer.set_cwd(usb.to_str()).unwrap();
          * } else {
-         *      file_explorer.set_cwd("./").unwrap();
+         *      self.file_explorer.set_cwd("./").unwrap();
          * }
          */
     
 
         // temporary
-        file_explorer.set_cwd("./").unwrap();
+        self.file_explorer.set_cwd("/").unwrap();
 
 
-
-        file_explorer.widget();
+    }
+    
+    fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
+        self.file_explorer.widget().render(area, buf);
 
     }
     /*
