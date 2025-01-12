@@ -7,7 +7,10 @@ use std::{
     io,
     thread,
     time::Duration,
-    path::Path,
+    path::{
+        Path,
+        PathBuf,
+    },
     env,
     error::Error
 };
@@ -32,6 +35,14 @@ use crate::proctype::ProcTypeWidget;
 
 mod fileselect;
 use crate::fileselect::FileSelectWidget;
+
+mod autoloop;
+use crate::autoloop::AutoloopWidget;
+
+/*
+mod timings;
+use crate::timings::TimingsWidget;
+*/
 
 
 #[derive(Debug, Display)]
@@ -60,15 +71,15 @@ type Timings = Vec<Weekday>;
 /// The Task struct is the main set of instructions that are written out into an env file to be 
 /// interpreted in future by the init program.
 #[derive( Debug)]
-struct Task<'a> {
+struct Task {
     proc_type: ProcType,
     auto_loop: bool,
     timings: Timings,
-    file: &'a Path
+    file: PathBuf
 }
 
-impl <'a> Task<'a> {
-    fn new(proc_type: ProcType, auto_loop: bool, timings: Timings, file: &'a Path) -> Self {
+impl Task {
+    fn new(proc_type: ProcType, auto_loop: bool, timings: Timings, file: PathBuf) -> Self {
         Task {
             proc_type,
             auto_loop,
@@ -112,79 +123,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = ratatui::init();
 
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
-    let proctype = ProcTypeWidget::default().run(terminal);
+    let proctype = ProcTypeWidget::default().run(terminal).unwrap();
 
     let mut terminal = ratatui::init();
     // return Ok(FileSelectType)
-    let mut file_path = FileSelectWidget::default().run(terminal);
+    let mut file_path = FileSelectWidget::default().run(terminal).unwrap();
     
     let mut terminal = ratatui::init();
-    loop {
-            terminal.draw(|f| {
-                let size = f.size();
-                let block = Block::default()
-                    .title(
-                        Span::styled("MediaLoop", 
-                            Style::default()
-                                .fg(Color::Yellow)
-                                .bg(Color::Blue)
-                        )
-                    );
-                let text = vec![ 
-                    Line::from("Select a media file to loop using our file explorer."),
-                    Line::from("Use the keyboard arrows and the 'Enter' key to find the file you want to loop."),
-                    Line::from("Press the 'Enter' key to select the file."),
-                    Line::from("You can exit the file explorer at any time by pressing 'ESC' or 'q'."),
-
-                    Line::from(""),
-                    Line::from(""),
-                    Line::from("Now press SPACE to continue."),
-                ];
-                let paragraph = Paragraph::new(text).block(block);
-                f.render_widget(paragraph, size);
-            });
-        let event = event::read();
-        if let Ok(Event::Key(key)) = event {
-            let key_code = key.code;
-            match key_code {
-                KeyCode::Char(' ') | KeyCode::Esc | KeyCode::Char('q') => break,
-                _ => {}
-            }
-        }
-   
-    }
-    /* 
-    let mut selected_file = String::with_capacity(20);
-
-    loop {
-        terminal.draw(|f| {
-            f.render_widget(&file_explorer.widget(), f.area());
-        })?;
-        let event = event::read();
-        if let Ok(Event::Key(key)) = event {
-            let key_code = key.code;
-            let current_is_dir = file_explorer.current().is_dir(); 
-            match key_code {
-                KeyCode::Char(' ') | KeyCode::Esc | KeyCode::Char('q') => break,
-                KeyCode::Enter if current_is_dir == false => {
-                    selected_file = file_explorer.current().path().display().to_string();
-                    break;
-                },
-                _ => {}
-            }
-        }
-        file_explorer.handle(&event?);
-    }
-    */
-    
 /*
-    let current_file = file_explorer.current();
-    let current_dir = file_explorer.cwd();
     println!("File: {}, Dir: {}", current_file.name(), current_dir.display());
 */
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
-     
+    let timings = Vec::new(); 
+    let task = Task::new(proctype, true, timings, file_path);
+
 
     disable_raw_mode()?;
     execute!(
@@ -193,6 +146,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    println!("{:?}", task);
 
     Ok(())
 }
