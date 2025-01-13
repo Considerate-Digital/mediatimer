@@ -75,7 +75,6 @@ impl Default for ProcTypeWidget {
                 (ProcType::Media, "A media file. Most video and audio formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable."),
-                (ProcType::Java, "A complied Java (*.class) file.")
 
             ]),
         }
@@ -119,7 +118,6 @@ impl ProcTypeWidget {
                 ProcType::Media => self.selected_type = ProcType::Media,
                 ProcType::Browser => self.selected_type = ProcType::Browser,
                 ProcType::Executable => self.selected_type = ProcType::Executable,
-                ProcType::Java => self.selected_type = ProcType::Java
             }
         }
     }

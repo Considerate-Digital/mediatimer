@@ -49,12 +49,11 @@ use crate::timings::TimingsWidget;
 */
 
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, PartialEq)]
 enum ProcType {
     Media,
     Browser,
     Executable,
-    Java
 }
 
 #[derive(Debug, Display)]
@@ -112,7 +111,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
    if let Some(dir) = home::home_dir() {
         // check if dir exists
         let mut dir_path = PathBuf::from(dir);
-        dir_path.push(".medialoop");
+        dir_path.push("medialoop_config");
 
         // check if the medialoop directory exists in home
         if dir_path.as_path().is_dir() == false {
@@ -124,7 +123,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
         }
 
         // write task to .env file in medialoop directory
-        dir_path.push(".env");
+        dir_path.push("vars");
 
         let mut file = fs::OpenOptions::new()
             .create(true)
@@ -198,7 +197,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let mut terminal = ratatui::init();
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
-    let autoloop = AutoloopWidget::default().run(terminal)?;
+    let mut autoloop = Autoloop::No;
+    if proctype == ProcType::Media {
+        autoloop = AutoloopWidget::default().run(terminal)?;
+    }
 
     let mut terminal = ratatui::init();
 
