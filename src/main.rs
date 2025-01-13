@@ -4,7 +4,10 @@ use clokwerk::{
 };
 use std::{
     fmt,
-    io::{Error, Write},
+    fs,
+    io,
+    io::Write,
+    io::Error as IoError,
     thread,
     time::Duration,
     path::{
@@ -12,8 +15,8 @@ use std::{
         PathBuf,
     },
     env,
-    error::Error
 };
+use std::error::Error;
 use ratatui::{
     prelude::CrosstermBackend,
     layout::{Constraint, Layout},
@@ -80,13 +83,13 @@ type Timings = Vec<Weekday>;
 #[derive( Debug)]
 struct Task {
     proc_type: ProcType,
-    auto_loop: bool,
+    auto_loop: Autoloop,
     timings: Timings,
     file: PathBuf
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: bool, timings: Timings, file: PathBuf) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, timings: Timings, file: PathBuf) -> Self {
         Task {
             proc_type,
             auto_loop,
@@ -94,7 +97,7 @@ impl Task {
             file
         }
     }
-    fn set_loop(&mut self, auto_loop: bool) {
+    fn set_loop(&mut self, auto_loop: Autoloop) {
         self.auto_loop = auto_loop;
     }
     fn set_proc_type(&mut self, p_type: ProcType) {
@@ -105,18 +108,18 @@ impl Task {
     }
 }
 
-fn write_task(task: Task) -> Result<(), Error> {
-   if let Some(dir) => home::home_dir() {
+fn write_task(task: Task) -> Result<(), IoError> {
+   if let Some(dir) = home::home_dir() {
         // check if dir exists
-        let dir_path = PathBuf::from(dir);
-        dir_path.push("/medialoop");
+        let mut dir_path = PathBuf::from(dir);
+        dir_path.push(".medialoop");
 
         // check if the medialoop directory exists in home
         if dir_path.as_path().is_dir() == false {
             // create the medialoop directory if it does not exist
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
                 eprintln!("Directory could not be created");
-               Error::other("Could not create medialoop directory.")
+               IoError::other("Could not create medialoop directory.");
             }
         }
 
@@ -124,16 +127,19 @@ fn write_task(task: Task) -> Result<(), Error> {
         dir_path.push(".env");
 
         let mut file = fs::OpenOptions::new()
+            .create(true)
             .read(true)
             .write(true)
-            .append(true)
             .open(&dir_path)?;
     
        // write proctype
-       writeln!(file, "ML_PROCTYPE={}", task.proc_type.to_string())?;
+       writeln!(file, "ML_PROCTYPE={}", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
-
+        writeln!(file, "ML_AUTOLOOP={}", match task.auto_loop {
+            Autoloop::Yes => "true",
+            Autoloop::No => "false"
+        });
 
        // write timings
        // create print each day as one env var and separate timings using " ".
@@ -149,14 +155,14 @@ fn write_task(task: Task) -> Result<(), Error> {
        
 
        // write file
-       writeln!(file, "ML_FILE={}", task.file)?;
+       writeln!(file, "ML_FILE={}", task.file.display())?;
             
 
    } else {
        eprintln!("Could not find home directory.");
-       Error::other("Could not find home directory")
+       IoError::other("Could not find home directory");
    }
-   Ok(());
+   Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -188,26 +194,29 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut terminal = ratatui::init();
     // return Ok(FileSelectType)
-    let mut file_path = FileSelectWidget::default().run(terminal)?;
+    let file_path = FileSelectWidget::default().run(terminal)?;
     
     let mut terminal = ratatui::init();
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
-    let mut autoloop = match AutoloopWidget::default().run(terminal)? {
-        Autoloop::Yes => true,
-        Autoloop::No => false
-    };
+    let autoloop = AutoloopWidget::default().run(terminal)?;
+
     let mut terminal = ratatui::init();
-/*
-    println!("File: {}, Dir: {}", current_file.name(), current_dir.display());
-*/
+
+    //returns Ok(Timings)
+    //let timings = TimingsWidget::default().run(terminal)?;
+
+    let mut terminal = ratatui::init();
+
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
-    let timings = Vec::new(); 
+    let timings = Vec::new();
     let task = Task::new(proctype, autoloop, timings, file_path);
 
     // write a function that writes the task to a specific env file
     // write_task 
-
+    if let Err(e) = write_task(task) {
+        eprintln!("Error writing tasks to env file: {}", e);
+    }
 
     disable_raw_mode()?;
     execute!(
@@ -216,8 +225,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-
-    println!("{:?}", task);
 
     Ok(())
 }

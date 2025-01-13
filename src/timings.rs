@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, read},
     layout::{Constraint, Layout, Rect},
     style::{
         palette::tailwind::{BLUE, GREEN, SLATE},
@@ -14,6 +14,8 @@ use ratatui::{
     },
     DefaultTerminal,
 };
+use tui_textarea::TextArea;
+
 use std::error::Error;
 use crate::Timings;
 use crate::Weekday;
@@ -70,6 +72,7 @@ impl Default for TimingsWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
+            text_area: TextArea::default(),
             list_element_entries: TimingsList::from_iter([
                 (Weekday::Monday(vec![(0900, 1700)]), "Enter the start and end timings for this day."),
 
@@ -85,6 +88,7 @@ impl TimingsWidget {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
                 self.handle_key(key);
+                self.text_area.input(key);
             };
         }
         Ok(self.selected_type)
@@ -103,24 +107,12 @@ impl TimingsWidget {
             KeyCode::Char('G') | KeyCode::End => self.select_last(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                 // add code to select the list item
-                self.set_current_type();
                 self.should_exit = true;
             }
             _ => {}
         }
     }
     
-    fn set_current_type(&mut self) {
-        if let Some(i) = self.list_element_entries.state.selected() {
-            match self.list_element_entries.list[i].list_element {
-                Timings::Media => self.selected_type = Timings::Media,
-                Timings::Browser => self.selected_type = Timings::Browser,
-                Timings::Executable => self.selected_type = Timings::Executable,
-                Timings::Java => self.selected_type = Timings::Java
-            }
-        }
-    }
-
     fn select_none(&mut self) {
         self.list_element_entries.state.select(None);
     }
