@@ -143,7 +143,7 @@ impl ProcTypeWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("What do you want to run?")
+        Paragraph::new("Medialoop Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -179,7 +179,7 @@ impl ProcTypeWidget {
         let list = List::new(items)
             .block(block)
             .highlight_style(SELECTED_STYLE)
-            .highlight_symbol(">")
+            .highlight_symbol("> ")
             .highlight_spacing(HighlightSpacing::Always);
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.proc_type_entries.state);

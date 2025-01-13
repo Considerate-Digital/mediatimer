@@ -3,7 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
+        palette::tailwind::{BLUE, GREEN, SLATE, LIME},
         Color, Modifier, Style, Stylize,
     },
     symbols,
@@ -32,6 +32,7 @@ const NORMAL_ROW_BG: Color = SLATE.c950;
 const ALT_ROW_BG_COLOR: Color = SLATE.c900;
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 const TEXT_FG_COLOR: Color = SLATE.c200;
+const TEXT_DIR_COLOR: Color = GREEN.c200;
 
 
 pub struct FileSelectWidget {
@@ -65,6 +66,7 @@ impl FileSelectWidget {
 
     pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
         self.setup_file_explorer();
+        self.style_file_explorer();
 
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
@@ -113,7 +115,7 @@ impl FileSelectWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Select a media file")
+        Paragraph::new("Medialoop Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -125,9 +127,25 @@ impl FileSelectWidget {
             .render(area, buf);
     }
 
-    fn create_file_explorer() {
-        let theme = Theme::default().add_default_title();
-                FileExplorer::with_theme(theme);
+    fn style_file_explorer(&mut self) {
+        let theme = Theme::default()
+            .add_default_title()
+            .with_block(Block::default()
+                .title(Line::raw("Select a media file.").centered())
+                .borders(Borders::TOP)
+                .border_set(symbols::border::EMPTY)
+                .border_style(ITEM_HEADER_STYLE)
+                .bg(NORMAL_ROW_BG)
+                .padding(Padding::horizontal(1))
+                )
+            .with_highlight_item_style(SELECTED_STYLE)
+            .with_highlight_symbol("> ".into())
+            .with_highlight_spacing(HighlightSpacing::Always)
+            .with_dir_style(Style::default().fg(TEXT_DIR_COLOR))
+            .with_highlight_dir_style(SELECTED_STYLE)
+            .with_item_style(Style::default().fg(TEXT_FG_COLOR));
+        
+        self.file_explorer.set_theme(theme)
     }
 
     fn setup_file_explorer(&mut self) {

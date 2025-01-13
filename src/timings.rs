@@ -15,7 +15,8 @@ use ratatui::{
     DefaultTerminal,
 };
 use std::error::Error;
-use crate::ProcType;
+use crate::Timings;
+use crate::Weekday;
 
 const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
 const NORMAL_ROW_BG: Color = SLATE.c950;
@@ -24,66 +25,62 @@ const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier:
 const TEXT_FG_COLOR: Color = SLATE.c200;
 
 
-pub struct ProcTypeWidget {
+pub struct TimingsWidget {
     should_exit: bool,
-    selected_type: ProcType,
-    proc_type_entries: ProcTypeList
+    list_element_entries: TimingsList
 }
 
-struct ProcTypeList {
-    list: Vec<ProcTypeEntry>,
+struct TimingsList {
+    list: Vec<TimingsEntry>,
     state: ListState
 }
 
-impl FromIterator<(ProcType, &'static str)> for ProcTypeList {
-    fn from_iter<I: IntoIterator<Item = (ProcType, &'static str)>>(iter: I) -> Self {
+impl FromIterator<(Timings, &'static str)> for TimingsList {
+    fn from_iter<I: IntoIterator<Item = (Timings, &'static str)>>(iter: I) -> Self {
         let list = iter
             .into_iter()
-            .map(|(proc_type, info)| ProcTypeEntry::new(proc_type, info))
+            .map(|(list_element, info)| TimingsEntry::new(list_element, info))
             .collect();
         let state = ListState::default();
         Self { list, state }
     }
 }
-struct ProcTypeEntry {
-    proc_type: ProcType,
+struct TimingsEntry {
+    list_element: Weekday,
     info: String,
 }
 
-impl From<&ProcTypeEntry> for ListItem<'_> {
-    fn from(value: &ProcTypeEntry) -> Self {
-        let line = Line::styled(format!("{}", value.proc_type.to_string()), TEXT_FG_COLOR);
+impl From<&TimingsEntry> for ListItem<'_> {
+    fn from(value: &TimingsEntry) -> Self {
+        let line = Line::styled(format!("{}", value.list_element.to_string()), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
 
-impl ProcTypeEntry {
-    fn new(proc_type: ProcType, info: &str) -> Self {
+impl TimingsEntry {
+    fn new(list_element: Timings, info: &str) -> Self {
         Self {
-            proc_type,
+            list_element,
             info: info.to_string()
         }
     }
 }
 
-impl Default for ProcTypeWidget {
+impl Default for TimingsWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
-            selected_type: ProcType::Media,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Most video and audio formats are accepted."),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable."),
-                (ProcType::Java, "A complied Java (*.class) file.")
+            list_element_entries: TimingsList::from_iter([
+                (Weekday::Monday(vec![(0900, 1700)]), "Enter the start and end timings for this day."),
+
 
             ]),
         }
     }
 }
 
-impl ProcTypeWidget {
-    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
+impl TimingsWidget {
+    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
@@ -114,30 +111,30 @@ impl ProcTypeWidget {
     }
     
     fn set_current_type(&mut self) {
-        if let Some(i) = self.proc_type_entries.state.selected() {
-            match self.proc_type_entries.list[i].proc_type {
-                ProcType::Media => self.selected_type = ProcType::Media,
-                ProcType::Browser => self.selected_type = ProcType::Browser,
-                ProcType::Executable => self.selected_type = ProcType::Executable,
-                ProcType::Java => self.selected_type = ProcType::Java
+        if let Some(i) = self.list_element_entries.state.selected() {
+            match self.list_element_entries.list[i].list_element {
+                Timings::Media => self.selected_type = Timings::Media,
+                Timings::Browser => self.selected_type = Timings::Browser,
+                Timings::Executable => self.selected_type = Timings::Executable,
+                Timings::Java => self.selected_type = Timings::Java
             }
         }
     }
 
     fn select_none(&mut self) {
-        self.proc_type_entries.state.select(None);
+        self.list_element_entries.state.select(None);
     }
     fn select_next(&mut self) {
-        self.proc_type_entries.state.select_next();
+        self.list_element_entries.state.select_next();
     }
     fn select_previous(&mut self) {
-        self.proc_type_entries.state.select_previous();
+        self.list_element_entries.state.select_previous();
     }
     fn select_first(&mut self) {
-        self.proc_type_entries.state.select_first();
+        self.list_element_entries.state.select_first();
     }
     fn select_last(&mut self) {
-        self.proc_type_entries.state.select_last();
+        self.list_element_entries.state.select_last();
     }
 
 
@@ -165,7 +162,7 @@ impl ProcTypeWidget {
 
         // Iterate through all the elements in the 'items' and stylise them
         let items: Vec<ListItem> = self 
-            .proc_type_entries
+            .list_element_entries
             .list
             .iter()
             .enumerate()
@@ -182,13 +179,13 @@ impl ProcTypeWidget {
             .highlight_symbol(">")
             .highlight_spacing(HighlightSpacing::Always);
         // we have to diferentiate this "render" from the render fn on self
-        StatefulWidget::render(list, area, buf, &mut self.proc_type_entries.state);
+        StatefulWidget::render(list, area, buf, &mut self.list_element_entries.state);
     }
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
-        let info = if let Some(i) = self.proc_type_entries.state.selected() {
-            self.proc_type_entries.list[i].info.clone()
+        let info = if let Some(i) = self.list_element_entries.state.selected() {
+            self.list_element_entries.list[i].info.clone()
         } else {
             "Nothing selected...".to_string()
         };
@@ -220,7 +217,7 @@ const fn alternate_colors(i: usize) -> Color {
     }
 }
 
-impl Widget for &mut ProcTypeWidget {
+impl Widget for &mut TimingsWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
@@ -235,8 +232,8 @@ impl Widget for &mut ProcTypeWidget {
         ])
         .areas(main_area);
 
-        ProcTypeWidget::render_header(header_area, buf);
-        ProcTypeWidget::render_footer(footer_area, buf);
+        TimingsWidget::render_header(header_area, buf);
+        TimingsWidget::render_footer(footer_area, buf);
         self.render_list(list_area, buf);
         self.render_selected_item(item_area, buf);
     }

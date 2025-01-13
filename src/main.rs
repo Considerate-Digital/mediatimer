@@ -4,7 +4,7 @@ use clokwerk::{
 };
 use std::{
     fmt,
-    io,
+    io::{Error, Write},
     thread,
     time::Duration,
     path::{
@@ -30,6 +30,8 @@ use crossterm::{
 use ratatui_explorer::{FileExplorer, Theme};
 use strum::Display;
 
+use home::home_dir;
+
 mod proctype;
 use crate::proctype::ProcTypeWidget;
 
@@ -38,7 +40,6 @@ use crate::fileselect::FileSelectWidget;
 
 mod autoloop;
 use crate::autoloop::AutoloopWidget;
-
 /*
 mod timings;
 use crate::timings::TimingsWidget;
@@ -51,6 +52,12 @@ enum ProcType {
     Browser,
     Executable,
     Java
+}
+
+#[derive(Debug, Display)]
+enum Autoloop {
+    Yes,
+    No
 }
 
 #[derive( Debug)]
@@ -98,6 +105,60 @@ impl Task {
     }
 }
 
+fn write_task(task: Task) -> Result<(), Error> {
+   if let Some(dir) => home::home_dir() {
+        // check if dir exists
+        let dir_path = PathBuf::from(dir);
+        dir_path.push("/medialoop");
+
+        // check if the medialoop directory exists in home
+        if dir_path.as_path().is_dir() == false {
+            // create the medialoop directory if it does not exist
+            if let Err(er) = fs::create_dir(dir_path.as_path()) {
+                eprintln!("Directory could not be created");
+               Error::other("Could not create medialoop directory.")
+            }
+        }
+
+        // write task to .env file in medialoop directory
+        dir_path.push(".env");
+
+        let mut file = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .append(true)
+            .open(&dir_path)?;
+    
+       // write proctype
+       writeln!(file, "ML_PROCTYPE={}", task.proc_type.to_string())?;
+
+       //write autoloop
+
+
+       // write timings
+       // create print each day as one env var and separate timings using " ".
+       // format is START-STOP e.g. 0900-1500
+       /*
+       for timing in task.timings.iter() {
+          let day_times_fmt = timing.iter().map(|i| format!("{}-{}", i.0, i.1).collect();
+           if let Err(e) = writeln!(file, "ML_{}={}", timing.to_string().to_uppercase(), day_times_fmt.join(,)) {
+               eprintln!("Could not write to file: {}", e);
+           }
+       }
+       */
+       
+
+       // write file
+       writeln!(file, "ML_FILE={}", task.file)?;
+            
+
+   } else {
+       eprintln!("Could not find home directory.");
+       Error::other("Could not find home directory")
+   }
+   Ok(());
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // useful for getting current settings
     // use this dir .env for testing
@@ -123,12 +184,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = ratatui::init();
 
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
-    let proctype = ProcTypeWidget::default().run(terminal).unwrap();
+    let proctype = ProcTypeWidget::default().run(terminal)?;
 
     let mut terminal = ratatui::init();
     // return Ok(FileSelectType)
-    let mut file_path = FileSelectWidget::default().run(terminal).unwrap();
+    let mut file_path = FileSelectWidget::default().run(terminal)?;
     
+    let mut terminal = ratatui::init();
+    // return Ok(Autoloop) e.g. Ok(Autoloop::No)
+    let mut autoloop = match AutoloopWidget::default().run(terminal)? {
+        Autoloop::Yes => true,
+        Autoloop::No => false
+    };
     let mut terminal = ratatui::init();
 /*
     println!("File: {}, Dir: {}", current_file.name(), current_dir.display());
@@ -136,7 +203,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
     let timings = Vec::new(); 
-    let task = Task::new(proctype, true, timings, file_path);
+    let task = Task::new(proctype, autoloop, timings, file_path);
+
+    // write a function that writes the task to a specific env file
+    // write_task 
 
 
     disable_raw_mode()?;
