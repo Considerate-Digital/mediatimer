@@ -22,6 +22,7 @@ use std::{
     PathBuf,
     Path
     },
+    process::Command,
 };
 use crate::ProcType;
 
@@ -158,7 +159,7 @@ impl FileSelectWidget {
     
 
         // temporary
-        self.file_explorer.set_cwd("/").unwrap();
+        self.file_explorer.set_cwd("/mnt").unwrap();
 
 
     }
