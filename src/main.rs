@@ -322,7 +322,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     */
-    
+
     /// Before the program starts, it unmounts and remounts any usb drives.
     /// This is  called in order to unmount and remount any usbs using the naming conventions
     /// that the medialoop_init uses. The mount points for usb drives must be standardised in
