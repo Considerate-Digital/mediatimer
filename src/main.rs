@@ -140,7 +140,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
             Autoloop::No => "false"
         });
 
-       // write timings
+       // TODO write timings
        // create print each day as one env var and separate timings using " ".
        // format is START-STOP e.g. 0900-1500
        /*
@@ -155,6 +155,27 @@ fn write_task(task: Task) -> Result<(), IoError> {
 
        // write file
        writeln!(file, "ML_FILE={}", task.file.display())?;
+
+       // advanced use
+       writeln!(file, "# Change this to 'true' if you want to use a custom schedule");
+       writeln!(file, "ML_SCHEDULE='false'");
+
+       //full schedule layout
+       let schedule = "
+        #ML_MONDAY=09:00-12:00,13:00-1700\n
+        #ML_TUESDAY=09:00-12:00,13:00-1700\n
+        #ML_WEDNESDAY=09:00-12:00,13:00-1700\n
+        #ML_THURSDAY=09:00-12:00,13:00-1700\n
+        #ML_FRIDAY=09:00-12:00,13:00-1700\n
+        #ML_SATURDAY=09:00-12:00,13:00-1700\n
+        #ML_SUNDAY=09:00-12:00,13:00-1700\n
+        ";
+       writeln!(flie, "# Remove the '#' at the start of each day that you require a customised schedule for.\n 
+        # Edit the timings and add new entries if needed.\n 
+        # Make sure the timings have the format START-END and are comma (',') separated with no spaces.\n
+        # Note that the auto-loop feature only applies to media files and you must implement internal loops yourself for browser-based or executable files."
+           );
+       writeln!(file, "{}", schedule);
             
 
    } else {
@@ -179,6 +200,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     */
+    
+    /// Before the program starts, it unmounts and remounts any usb drives.
+    /// This is  called in order to unmount and remount any usbs using the naming conventions
+    /// that the medialoop_init uses. The mount points for usb drives must be standardised in
+    /// order for this program to work.
 
 
 
