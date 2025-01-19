@@ -134,10 +134,10 @@ fn write_task(task: Task) -> Result<(), IoError> {
             .open(&dir_path)?;
     
        // write proctype
-       writeln!(file, "ML_PROCTYPE={}", task.proc_type.to_string().to_lowercase())?;
+       writeln!(file, "ML_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
-        writeln!(file, "ML_AUTOLOOP={}", match task.auto_loop {
+        writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
             Autoloop::Yes => "true",
             Autoloop::No => "false"
         });
@@ -156,14 +156,14 @@ fn write_task(task: Task) -> Result<(), IoError> {
        
 
        // write file
-       writeln!(file, "ML_FILE={}", task.file.display())?;
+       writeln!(file, "ML_FILE=\"{}\"", task.file.display())?;
 
        // advanced use
        writeln!(file, "# Change this to 'true' if you want to use a custom schedule");
-       writeln!(file, "ML_SCHEDULE='false'");
+       writeln!(file, "ML_SCHEDULE=\"false\"");
 
        //full schedule layout
-       let schedule = "#ML_MONDAY=09:00-12:00,13:00-1700\n#ML_TUESDAY=09:00-12:00,13:00-1700\n#ML_WEDNESDAY=09:00-12:00,13:00-1700\n#ML_THURSDAY=09:00-12:00,13:00-1700\n#ML_FRIDAY=09:00-12:00,13:00-1700\n#ML_SATURDAY=09:00-12:00,13:00-1700\n#ML_SUNDAY=09:00-12:00,13:00-1700\n";
+       let schedule = "#ML_MONDAY=\"09:00-12:00,13:00-17:00\"\n#ML_TUESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_WEDNESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_THURSDAY=\"09:00-12:00,13:00-17:00\"\n#ML_FRIDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SATURDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SUNDAY=\"09:00-12:00,13:00-17:00\"\n";
        writeln!(file, "# Remove the '#' at the start of each day that you require a customised schedule for.\n# Edit the timings and add new entries if needed.\n# Make sure the timings have the format START-END and are comma (',') separated with no spaces.\n# Note that the auto-loop feature only applies to media files and you must implement internal loops yourself for browser-based or executable files.");
        writeln!(file, "{}", schedule);
             
@@ -231,6 +231,10 @@ fn find_mount_drives() -> Result<(), Box<dyn Error>> {
                 .filter(|d| *d != "" )
                 .collect::<Vec<_>>();
                 if drive_info[1] == "1" { 
+                    
+                    // have the thread sleep for one second as puppy umount sometimes fails
+                    let one_second = Duration::from_millis(1000); 
+                    thread::sleep(one_second);
                     // unmount the drive before going further
                     let unmount_com = Command::new("umount")
                         .arg("/dev/".to_owned() + drive_info[0])
