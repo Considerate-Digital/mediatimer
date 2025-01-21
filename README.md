@@ -6,6 +6,7 @@ You can schedule and optionally loop media files, executables or browser-based s
 ## Dependencies
 - ffmpeg
 - chromium
+- open-jdk ("default-jdk")
 
 ## Setup
 
