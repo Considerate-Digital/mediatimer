@@ -1,9 +1,4 @@
-use clokwerk::{
-    Scheduler, TimeUnits, Job,
-    Interval::*
-};
 use std::{
-    fmt,
     fs,
     io,
     io::Write,
@@ -11,31 +6,25 @@ use std::{
     thread,
     time::Duration,
     path::{
-        Path,
         PathBuf,
     },
-    env,
     process::Command
 };
 use regex::Regex;
 use std::error::Error;
 use ratatui::{
     prelude::CrosstermBackend,
-    layout::{Constraint, Layout},
-    style::{Color, Modifier, Style, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Borders, Block, Paragraph},
-    Frame,
+    style::{
+        palette::tailwind::{BLUE, GREEN, SLATE},
+        Color, Modifier, Style, Stylize,
+    },
 };
 use crossterm::{
-    event::{self, Event, DisableMouseCapture, EnableMouseCapture, KeyCode},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
 };
-use ratatui_explorer::{FileExplorer, Theme};
 use strum::Display;
-
-use home::home_dir;
 
 mod proctype;
 use crate::proctype::ProcTypeWidget;
@@ -49,10 +38,20 @@ use crate::autoloop::AutoloopWidget;
 mod landing;
 use crate::landing::LandingWidget;
 
+mod reboot;
+use crate::reboot::RebootWidget;
+
 /*
 mod timings;
 use crate::timings::TimingsWidget;
 */
+
+const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
+const NORMAL_ROW_BG: Color = SLATE.c950;
+const ALT_ROW_BG_COLOR: Color = SLATE.c900;
+const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
+const TEXT_FG_COLOR: Color = SLATE.c200;
+const TEXT_DIR_COLOR: Color = GREEN.c200;
 
 
 #[derive(Debug, Display, PartialEq)]
@@ -67,7 +66,11 @@ enum Autoloop {
     Yes,
     No
 }
-
+#[derive(Debug, Display, PartialEq)]
+enum Reboot {
+    Yes,
+    No
+}
 #[derive( Debug)]
 enum Weekday {
     Monday(Vec<(u32, u32)>),
@@ -85,6 +88,7 @@ type Timings = Vec<Weekday>;
 /// Commonly this is used for playing media files at certain times.
 /// The Task struct is the main set of instructions that are written out into an env file to be 
 /// interpreted in future by the init program.
+
 #[derive( Debug)]
 struct Task {
     proc_type: ProcType,
@@ -125,7 +129,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
         if dir_path.as_path().is_dir() == false {
             // create the medialoop directory if it does not exist
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
-                eprintln!("Directory could not be created");
+               eprintln!("Directory could not be created: {}", er);
                IoError::other("Could not create medialoop directory.");
             }
         }
@@ -140,10 +144,10 @@ fn write_task(task: Task) -> Result<(), IoError> {
             .open(&dir_path)?;
     
        // write proctype
-       writeln!(file, "ML_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
+       let _i = writeln!(file, "ML_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
-        writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
+        let _i = writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
             Autoloop::Yes => "true",
             Autoloop::No => "false"
         });
@@ -304,7 +308,7 @@ fn mount_usb(drive: Usb) -> Result<(), Box<dyn Error>> {
         Usb::SDC4 => Usb::SDC4.as_str(),
         Usb::UNKNOWN => ""
     };
-    let mount_drive = Command::new("mount")
+    let _mount_drive = Command::new("mount")
             .arg("/dev/".to_owned() + drive_name)
             // tell mount to make the target dir
             .arg("-o")
@@ -347,7 +351,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = ratatui::init();
 
     let _landing = LandingWidget::default().run(&mut terminal)?;
-/*
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
     let proctype = ProcTypeWidget::default().run(&mut terminal)?;
 
@@ -375,7 +378,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(e) = write_task(task) {
         eprintln!("Error writing tasks to env file: {}", e);
     }
-*/
+
+
+    // return Ok(Reboot) e.g. Ok(Reboot::No)
+    let mut reboot = RebootWidget::default().run(&mut terminal)?;
+
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -383,6 +390,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    // if reboot selected then reboot
+        match reboot {
+            Reboot::Yes => {
+                println!("rebooting");
+                /*
+                let _reboot = Command::new("reboot")
+                    .output()
+                    .expect("could not reboot");
+                */
+            }
+            Reboot::No => {}
+        }
 
     Ok(())
 }

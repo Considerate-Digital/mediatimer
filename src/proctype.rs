@@ -3,7 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
+        palette::tailwind::{BLUE, SLATE},
         Color, Modifier, Style, Stylize,
     },
     symbols,
@@ -82,7 +82,7 @@ impl Default for ProcTypeWidget {
 }
 
 impl ProcTypeWidget {
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
         while !self.should_exit {
             &terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

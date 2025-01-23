@@ -3,19 +3,19 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
+        palette::tailwind::{BLUE, SLATE},
         Color, Modifier, Style, Stylize,
     },
     symbols,
     text::Line,
     widgets::{
-        Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
-        StatefulWidget, Widget, Wrap,
+        Block, Borders, ListState, Padding, Paragraph,
+        StatefulWidget, Widget, Wrap, ListItem, List,
+        HighlightSpacing
     },
     DefaultTerminal,
 };
 use std::error::Error;
-use crate::ProcType;
 
 const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
 const NORMAL_ROW_BG: Color = SLATE.c950;
@@ -82,7 +82,7 @@ impl Default for AutoloopWidget {
 }
 
 impl AutoloopWidget {
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

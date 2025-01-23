@@ -3,17 +3,18 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect, Flex},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
+        palette::tailwind::{BLUE, SLATE},
         Color, Modifier, Style, Stylize,
     },
     symbols,
     text::Line,
     widgets::{
-        Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
-        StatefulWidget, Widget, Wrap,
+        Block, Borders, Padding, Paragraph,
+        Widget, 
     },
     DefaultTerminal,
 };
+use ratatui::prelude::*;
 use std::error::Error;
 use crate::ProcType;
 
@@ -23,7 +24,6 @@ const ALT_ROW_BG_COLOR: Color = SLATE.c900;
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 const TEXT_FG_COLOR: Color = SLATE.c200;
 
-use crate::Autoloop;
 
 pub struct LandingWidget {
     should_exit: bool,
@@ -38,7 +38,7 @@ impl Default for LandingWidget {
 }
 
 impl LandingWidget {
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<(), Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<(), Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
@@ -78,22 +78,32 @@ impl LandingWidget {
             .render(area, buf);
     }
 
-    fn render_list(area: Rect, buf: &mut Buffer) {
-        let title = Line::raw("Welcome to medialoop").centered();
-        let para = Paragraph::new("Medialoop was created by Considerate Digital to help automate and control things in exhibition spaces.");
-        let length = title.width() * 4;
+    fn render_text(area: Rect, buf: &mut Buffer) {
+        let title = Line::raw("Welcome to medialoop!").centered();
+        let _length = title.width() * 4;
         let block = Block::new()
             .title(title.clone())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
-            .bg(ALT_ROW_BG_COLOR)
-            .render(
-                center(area, 
-                    Constraint::Length(length as u16), 
-                    Constraint::Length(4)
+            .padding(Padding::uniform(4))
+            .bg(ALT_ROW_BG_COLOR);
+
+        let _para = Paragraph::new(
+            vec![
+                Line::from(
+                        "Medialoop was created by Considerate Digital to help automate and control things in exhibition spaces."
                 ),
-            buf
+                Line::from(""),
+                Line::from(
+                        "Let's get going!"
+                ),
+            ])
+            .block(block)
+            .alignment(Alignment::Center)
+            .render(
+                area,
+                buf
             );
     }
 
@@ -123,8 +133,7 @@ impl Widget for &mut LandingWidget {
         .areas(main_area);
         LandingWidget::render_header(header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
-        LandingWidget::render_list(center_area, buf);
+        LandingWidget::render_text(center_area, buf);
     }
-
 }
 

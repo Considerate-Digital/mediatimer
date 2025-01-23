@@ -3,28 +3,24 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE, LIME},
+        palette::tailwind::{BLUE, GREEN, SLATE},
         Color, Modifier, Style, Stylize,
     },
     symbols,
     text::Line,
     widgets::{
-        Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
-        StatefulWidget, Widget, Wrap,
+        Block, Borders, HighlightSpacing, Padding, Paragraph,
+        Widget, Wrap,
     },
     DefaultTerminal,
 };
 use std::{
     error::Error,
-    rc::Rc,
-    cell::RefCell,
     path::{
     PathBuf,
     Path
     },
-    process::Command,
 };
-use crate::ProcType;
 
 use ratatui_explorer::{FileExplorer, Theme};
 
@@ -65,7 +61,7 @@ impl FileSelectWidget {
     }
     */
 
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
         self.setup_file_explorer();
         self.style_file_explorer();
 
@@ -94,7 +90,6 @@ impl FileSelectWidget {
             }
             KeyCode::Enter if is_dir == false => {
                 // check that it is not "../" or "./"
-                println!("{:?}", self.file_explorer.current().name());
 
                 self.set_current_type();
                 self.should_exit = true;

@@ -3,7 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
+        palette::tailwind::{BLUE, SLATE},
         Color, Modifier, Style, Stylize,
     },
     symbols,
@@ -15,7 +15,6 @@ use ratatui::{
     DefaultTerminal,
 };
 use std::error::Error;
-use crate::ProcType;
 
 const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
 const NORMAL_ROW_BG: Color = SLATE.c950;
@@ -23,43 +22,43 @@ const ALT_ROW_BG_COLOR: Color = SLATE.c900;
 const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
 const TEXT_FG_COLOR: Color = SLATE.c200;
 
-use crate::Autoloop;
+use crate::Reboot;
 
-pub struct AutoloopWidget {
+pub struct RebootWidget {
     should_exit: bool,
-    selected_type: Autoloop,
-    list_element_entries: AutoloopList
+    selected_type: Reboot,
+    list_element_entries: RebootList
 }
 
-struct AutoloopList {
-    list: Vec<AutoloopEntry>,
+struct RebootList {
+    list: Vec<RebootEntry>,
     state: ListState
 }
 
-impl FromIterator<(Autoloop, &'static str)> for AutoloopList {
-    fn from_iter<I: IntoIterator<Item = (Autoloop, &'static str)>>(iter: I) -> Self {
+impl FromIterator<(Reboot, &'static str)> for RebootList {
+    fn from_iter<I: IntoIterator<Item = (Reboot, &'static str)>>(iter: I) -> Self {
         let list = iter
             .into_iter()
-            .map(|(list_element, info)| AutoloopEntry::new(list_element, info))
+            .map(|(list_element, info)| RebootEntry::new(list_element, info))
             .collect();
         let state = ListState::default();
         Self { list, state }
     }
 }
-struct AutoloopEntry {
-    list_element: Autoloop,
+struct RebootEntry {
+    list_element: Reboot,
     info: String,
 }
 
-impl From<&AutoloopEntry> for ListItem<'_> {
-    fn from(value: &AutoloopEntry) -> Self {
+impl From<&RebootEntry> for ListItem<'_> {
+    fn from(value: &RebootEntry) -> Self {
         let line = Line::styled(format!("{}", value.list_element.to_string()), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
 
-impl AutoloopEntry {
-    fn new(list_element: Autoloop, info: &str) -> Self {
+impl RebootEntry {
+    fn new(list_element: Reboot, info: &str) -> Self {
         Self {
             list_element,
             info: info.to_string()
@@ -67,22 +66,22 @@ impl AutoloopEntry {
     }
 }
 
-impl Default for AutoloopWidget {
+impl Default for RebootWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
-            selected_type: Autoloop::No,
-            list_element_entries: AutoloopList::from_iter([
-                (Autoloop::Yes, "Auto loop this media file."),
-                (Autoloop::No, "Do not auto loop this media file.")
+            selected_type: Reboot::No,
+            list_element_entries: RebootList::from_iter([
+                (Reboot::Yes, "Reboot my computer now."),
+                (Reboot::No, "Do not reboot my computer now, I will do it later.")
 
             ]),
         }
     }
 }
 
-impl AutoloopWidget {
-    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
+impl RebootWidget {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Reboot, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
@@ -115,8 +114,8 @@ impl AutoloopWidget {
     fn set_current_type(&mut self) {
         if let Some(i) = self.list_element_entries.state.selected() {
             match self.list_element_entries.list[i].list_element {
-                Autoloop::Yes => self.selected_type = Autoloop::Yes,
-                Autoloop::No => self.selected_type = Autoloop::No,
+                Reboot::Yes => self.selected_type = Reboot::Yes,
+                Reboot::No => self.selected_type = Reboot::No,
             }
         }
     }
@@ -154,7 +153,7 @@ impl AutoloopWidget {
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::new()
-            .title(Line::raw("Do you want your file to automatically loop?").centered())
+            .title(Line::raw("Reboot now?").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
@@ -217,7 +216,7 @@ const fn alternate_colors(i: usize) -> Color {
     }
 }
 
-impl Widget for &mut AutoloopWidget {
+impl Widget for &mut RebootWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
@@ -232,8 +231,8 @@ impl Widget for &mut AutoloopWidget {
         ])
         .areas(main_area);
 
-        AutoloopWidget::render_header(header_area, buf);
-        AutoloopWidget::render_footer(footer_area, buf);
+        RebootWidget::render_header(header_area, buf);
+        RebootWidget::render_footer(footer_area, buf);
         self.render_list(list_area, buf);
         self.render_selected_item(item_area, buf);
     }
