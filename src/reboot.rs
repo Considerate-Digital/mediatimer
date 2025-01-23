@@ -82,7 +82,7 @@ impl Default for AutoloopWidget {
 }
 
 impl AutoloopWidget {
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
+    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

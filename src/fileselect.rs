@@ -65,7 +65,7 @@ impl FileSelectWidget {
     }
     */
 
-    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
+    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
         self.setup_file_explorer();
         self.style_file_explorer();
 

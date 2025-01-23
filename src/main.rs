@@ -45,6 +45,10 @@ use crate::fileselect::FileSelectWidget;
 
 mod autoloop;
 use crate::autoloop::AutoloopWidget;
+
+mod landing;
+use crate::landing::LandingWidget;
+
 /*
 mod timings;
 use crate::timings::TimingsWidget;
@@ -98,6 +102,7 @@ impl Task {
             file
         }
     }
+    /*
     fn set_loop(&mut self, auto_loop: Autoloop) {
         self.auto_loop = auto_loop;
     }
@@ -107,6 +112,7 @@ impl Task {
     fn set_weekday(&mut self, wd: Weekday) {
         self.timings.push(wd);
     }
+    */
 }
 
 fn write_task(task: Task) -> Result<(), IoError> {
@@ -340,26 +346,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = ratatui::init();
 
+    let _landing = LandingWidget::default().run(&mut terminal)?;
+/*
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
-    let proctype = ProcTypeWidget::default().run(terminal)?;
+    let proctype = ProcTypeWidget::default().run(&mut terminal)?;
 
-    let mut terminal = ratatui::init();
     // return Ok(FileSelectType)
-    let file_path = FileSelectWidget::default().run(terminal)?;
+    let file_path = FileSelectWidget::default().run(&mut terminal)?;
     
-    let mut terminal = ratatui::init();
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
     let mut autoloop = Autoloop::No;
     if proctype == ProcType::Media {
-        autoloop = AutoloopWidget::default().run(terminal)?;
+        autoloop = AutoloopWidget::default().run(&mut terminal)?;
     }
 
-    let mut terminal = ratatui::init();
 
     //returns Ok(Timings)
-    //let timings = TimingsWidget::default().run(terminal)?;
+    //let timings = TimingsWidget::default().run(&mut terminal)?;
 
-    let mut terminal = ratatui::init();
 
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
@@ -371,7 +375,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(e) = write_task(task) {
         eprintln!("Error writing tasks to env file: {}", e);
     }
-
+*/
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
