@@ -248,12 +248,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // if reboot selected then reboot
         match reboot {
             Reboot::Yes => {
-                println!("rebooting");
-                /*
                 let _reboot = Command::new("reboot")
                     .output()
                     .expect("could not reboot");
-                */
             }
             Reboot::No => {}
         }
