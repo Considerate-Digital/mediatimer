@@ -3,8 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
-        Color, Modifier, Style, Stylize,
+        Style, Stylize,
     },
     symbols,
     text::Line,
@@ -24,12 +23,13 @@ use std::{
 
 use ratatui_explorer::{FileExplorer, Theme};
 
-const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
-const NORMAL_ROW_BG: Color = SLATE.c950;
-const ALT_ROW_BG_COLOR: Color = SLATE.c900;
-const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
-const TEXT_FG_COLOR: Color = SLATE.c200;
-const TEXT_DIR_COLOR: Color = GREEN.c200;
+use crate::styles::{
+    ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
+    SELECTED_STYLE,
+    TEXT_FG_COLOR,
+    TEXT_DIR_COLOR
+};
 
 
 pub struct FileSelectWidget {
@@ -101,13 +101,6 @@ impl FileSelectWidget {
     fn set_current_type(&mut self) {
         self.selected_file = self.file_explorer.current().path().to_path_buf();
     }
-    /*
-    fn find_likely_usb() -> Option<&Path> {
-       // use this function to identify and examine a likely usb mount 
-       // first test if any usbs have been mounted using the medialoop_init program
-       // then check for any usb mount points
-    }
-    */
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
@@ -145,13 +138,6 @@ impl FileSelectWidget {
     }
 
     fn setup_file_explorer(&mut self) {
-        /* if let Some(usb) = find_likely_usb() {
-         *      self.file_explorer.set_cwd(usb.to_str()).unwrap();
-         * } else {
-         *      self.file_explorer.set_cwd("./").unwrap();
-         * }
-         */
-    
 
         // temporary
         self.file_explorer.set_cwd("/mnt").unwrap();
@@ -163,37 +149,6 @@ impl FileSelectWidget {
         self.file_explorer.widget().render(area, buf);
 
     }
-    /*
-    fn render_file_(&mut self, area: Rect, buf: &mut Buffer) {
-        let block = Block::new()
-            .title(Line::raw("Find and select your media file").centered())
-            .borders(Borders::TOP)
-            .border_set(symbols::border::EMPTY)
-            .border_style(ITEM_HEADER_STYLE)
-            .bg(NORMAL_ROW_BG);
-
-        // Iterate through all the elements in the 'items' and stylise them
-        let items: Vec<ListItem> = self 
-            .proc_type_entries
-            .list
-            .iter()
-            .enumerate()
-            .map(|(i, list_item)| {
-                let color = alternate_colors(i);
-                ListItem::from(list_item).bg(color)
-            })
-            .collect();
-
-        // create a list from all the items and highlight the currently selected one
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(SELECTED_STYLE)
-            .highlight_symbol(">")
-            .highlight_spacing(HighlightSpacing::Always);
-        // we have to diferentiate this "render" from the render fn on self
-        StatefulWidget::render(list, area, buf, &mut self.proc_type_entries.state);
-    }
-    */
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
@@ -222,14 +177,6 @@ impl FileSelectWidget {
             .render(area, buf);
     }
 
-}
-
-const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
-        NORMAL_ROW_BG
-    } else {
-        ALT_ROW_BG_COLOR
-    }
 }
 
 impl Widget for &mut FileSelectWidget {

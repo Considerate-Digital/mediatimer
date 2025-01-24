@@ -3,8 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, SLATE},
-        Color, Modifier, Style, Stylize,
+        Color,  Stylize,
     },
     symbols,
     text::Line,
@@ -17,12 +16,13 @@ use ratatui::{
 use std::error::Error;
 use crate::ProcType;
 
-const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
-const NORMAL_ROW_BG: Color = SLATE.c950;
-const ALT_ROW_BG_COLOR: Color = SLATE.c900;
-const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
-const TEXT_FG_COLOR: Color = SLATE.c200;
-
+use crate::styles::{
+    ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
+    ALT_ROW_BG_COLOR,
+    SELECTED_STYLE,
+    TEXT_FG_COLOR,
+};
 
 pub struct ProcTypeWidget {
     should_exit: bool,
@@ -84,7 +84,7 @@ impl Default for ProcTypeWidget {
 impl ProcTypeWidget {
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
         while !self.should_exit {
-            &terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
+            let _ = &terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
                 self.handle_key(key);
             };

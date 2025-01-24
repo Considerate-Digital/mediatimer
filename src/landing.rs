@@ -1,10 +1,9 @@
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    layout::{Constraint, Layout, Rect, Flex},
+    layout::{Constraint, Layout, Rect },
     style::{
-        palette::tailwind::{BLUE, SLATE},
-        Color, Modifier, Style, Stylize,
+        Stylize,
     },
     symbols,
     text::Line,
@@ -16,13 +15,11 @@ use ratatui::{
 };
 use ratatui::prelude::*;
 use std::error::Error;
-use crate::ProcType;
 
-const ITEM_HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(BLUE.c800);
-const NORMAL_ROW_BG: Color = SLATE.c950;
-const ALT_ROW_BG_COLOR: Color = SLATE.c900;
-const SELECTED_STYLE: Style = Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD);
-const TEXT_FG_COLOR: Color = SLATE.c200;
+use crate::styles::{
+    ITEM_HEADER_STYLE,
+    ALT_ROW_BG_COLOR,
+};
 
 
 pub struct LandingWidget {
@@ -107,15 +104,6 @@ impl LandingWidget {
             );
     }
 
-}
-fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
-    let [area] = Layout::horizontal([horizontal])
-        .flex(Flex::Center)
-        .areas(area);
-    let [area] = Layout::vertical([vertical])
-        .flex(Flex::Center)
-        .areas(area);
-    area
 }
 
 impl Widget for &mut LandingWidget {
