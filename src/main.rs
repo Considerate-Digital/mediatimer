@@ -95,17 +95,6 @@ impl Task {
             file
         }
     }
-    /*
-    fn set_loop(&mut self, auto_loop: Autoloop) {
-        self.auto_loop = auto_loop;
-    }
-    fn set_proc_type(&mut self, p_type: ProcType) {
-        self.proc_type = p_type;
-    }
-    fn set_weekday(&mut self, wd: Weekday) {
-        self.timings.push(wd);
-    }
-    */
 }
 
 fn write_task(task: Task) -> Result<(), IoError> {
@@ -177,7 +166,8 @@ fn write_task(task: Task) -> Result<(), IoError> {
 /// Before the program starts, it unmounts and remounts any usb drives.
 /// This is  called in order to unmount and remount any usbs using the naming conventions
 /// that the medialoop_init uses. The mount points for usb drives must be standardised in
-/// order for this program to work.
+/// order for this program to work. The program is designed this way so that it can be utilised 
+/// by non-technical users.
 
 fn main() -> Result<(), Box<dyn Error>> {
     // useful for getting current settings
@@ -220,7 +210,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     //returns Ok(Timings)
     //let timings = TimingsWidget::default().run(&mut terminal)?;
-
 
     // if the selected file is on a usb stick
     // edit fstab to automount that usb
