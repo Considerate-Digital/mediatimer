@@ -9,7 +9,7 @@ use ratatui::{
     text::Line,
     widgets::{
         Block, Borders, Padding, Paragraph,
-        Widget, 
+        Widget, Wrap
     },
     DefaultTerminal,
 };
@@ -98,6 +98,7 @@ impl LandingWidget {
             ])
             .block(block)
             .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true })
             .render(
                 area,
                 buf

@@ -6,6 +6,9 @@ use std::{
     path::{
         PathBuf,
     },
+    process::{
+        Command
+    }
 };
 use std::error::Error;
 use ratatui::{
