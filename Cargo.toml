@@ -13,3 +13,4 @@ ratatui-explorer = "0.1.3"
 regex = "1.11.1"
 strum = {version = "0.26.3", features = ["derive"] }
 tui-textarea = "0.7.0"
+whoami = "1.5.2"

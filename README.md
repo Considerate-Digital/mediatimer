@@ -10,7 +10,7 @@ You can schedule and optionally loop media files, executables or browser-based s
 
 ## Setup
 
-This software was originally designed for Puppy linux. Puppy linux is unusual for a linux desktop distribution, as it allows the default user to be root. For a Puppy linux installation, all that you would need to do would be to install the dependencies and then manually install `medialoop` and `medialoop_init` to `/usr/sbin/`. Finally, you would need to create a startup job or script that automatically runs `medialoop_init` on startup.
+This software was originally designed for FunOS (Ubuntu-based). FunOS (Ubuntu-based) is unusual for a linux desktop distribution, as it allows the default user to be root. For a FunOS (Ubuntu-based) installation, all that you would need to do would be to install the dependencies and then manually install `medialoop` and `medialoop_init` to `/usr/sbin/`. Finally, you would need to create a startup job or script that automatically runs `medialoop_init` on startup.
 
 ### Other linux distributions
 

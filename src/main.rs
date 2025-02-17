@@ -187,8 +187,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     */
-
-    let _usb_drive_mount = find_mount_drives()?;
+    
+    // temporarily remove mounting capabilities
+    //let _usb_drive_mount = find_mount_drives()?;
 
 
     enable_raw_mode()?;

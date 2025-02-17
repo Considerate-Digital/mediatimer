@@ -31,6 +31,8 @@ use crate::styles::{
     TEXT_DIR_COLOR
 };
 
+use whoami::username;
+
 
 pub struct FileSelectWidget {
     should_exit: bool,
@@ -138,9 +140,13 @@ impl FileSelectWidget {
     }
 
     fn setup_file_explorer(&mut self) {
-
-        // temporary
-        self.file_explorer.set_cwd("/mnt").unwrap();
+        
+        if let Some(username) = whoami::username() {
+            let path_buf: PathBuf = ["/media/", username].iter().collect();
+            self.file_explorer.set_cwd(path_buf).unwrap();
+        } else {
+            self.file_explorer.set_cwd("/media/").unwrap();
+        }
 
 
     }
