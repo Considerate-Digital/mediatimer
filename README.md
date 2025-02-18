@@ -16,15 +16,3 @@ This software was originally designed for FunOS (Ubuntu-based). FunOS (Ubuntu-ba
 
 It is possible to run this software on other linux distributions, but be aware that it was not designed to work on devices other than those provided by Considerate Digital and is not tested in other environments.
 
-To set `medialoop` up on most linux distributions you have to give a user `mount` and `umount` permissions. *This is a security risk, as the ability to mount filesystems should be restricted and can have adverse consequences.* We would suggest that you only do this for systems used expressly for the purpose of looping media, executables or browser-based software, and not on your day-to-day or "work" machine.
-
-To give the user permissons:
-``` 
-sudo visudo /etc/sudoers
-```
-
-Then add the following, substituting your username:
-```
-username    (ALL)=ALL   /usr/bin/mount, /usr/bin/umount
-```
-These instructions may vary for separate distributions.
