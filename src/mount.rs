@@ -1,6 +1,9 @@
 use std:: {
     error::Error,
-    process::Command,
+    process::{
+        Command,
+        Stdio
+    },
     thread,
     time::Duration
 };
@@ -59,7 +62,8 @@ impl Usb {
 
     }
 }
-pub fn identify_mounted_drives() -> Result<(), Box<dyn Error>> {
+pub fn identify_mounted_drives() -> Vec<String> {
+    let mut mounts = Vec::with_capacity(2);
     // find out if any drives mounted, otherwise default to /home/username
     let all_drives = Command::new("lsblk")
         .arg("-l")
@@ -67,7 +71,7 @@ pub fn identify_mounted_drives() -> Result<(), Box<dyn Error>> {
         .arg("NAME,HOTPLUG")
         .output()
         .expect("some drives");
-    
+
     let all_drives_string = String::from_utf8_lossy(&all_drives.stdout);
     
     for line in all_drives_string.lines() {
@@ -97,29 +101,69 @@ pub fn identify_mounted_drives() -> Result<(), Box<dyn Error>> {
                         &_ => Usb::UNKNOWN
 
                     };
-                
-                // mount the device
-                let udc_output = Command::new("udisksctl")
-                    .arg("mount")
-                    .arg("-b")
-                    .arg(drive.as_device_path())
-                    .output()
-                    .expect("One drive to be available")
-                println!("{}", udc_output);
-
-                let mount_info = udc_output.split(" ")
-                    .filter(|d| *d != "")
-                    .collect::<Vec<_>>();
     
 
-                if mount_info[4] != "" {
+                // check if device mounted
+                let udc_info = Command::new("udisksctl")
+                    .arg("info")
+                    .arg("-b")
+                    .arg(drive.as_device_path())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .expect("Failed to get info on usb disks");
 
+                let udc_info = udc_info.stdout.expect("Failed to open udc-info stdout");
+
+                let mut udc_m_grep = Command::new("grep")
+                    .arg("MountPoints")
+                    .stdin(Stdio::from(udc_info))
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .expect("Failed to grep the udisksctl output");
+
+                let udc_mounted_output = udc_m_grep.wait_with_output().expect("Failed to wait on grep");
+
+
+                let udc_mounted_output = String::from_utf8_lossy(&udc_mounted_output.stdout);
+                
+                let mount_info = udc_mounted_output.split(" ")
+                    .map(|x| x.trim())
+                    .filter(|d| *d != "")
+                    .collect::<Vec<_>>();
+
+                // if the previous step has revealed that the partition is not mounted expect a 
+                // vector of length=1 with "MountPoints" contained within.
+                if mount_info.len() == 1 { 
+                    // mount the device
+                    let udc_output = Command::new("udisksctl")
+                        .arg("mount")
+                        .arg("-b")
+                        .arg(drive.as_device_path())
+                        .output()
+                        .expect("One drive to be mounted");
+
+                    let udc_output = String::from_utf8_lossy(&udc_output.stdout);
+
+                    let mounted_drive_info = udc_output.split(" ")
+                        .map(|x| x.trim())
+                        .filter(|d| *d != "")
+                        .collect::<Vec<_>>();
+        
+                    // this will be a vector with four parts
+                    if mounted_drive_info.len() == 4 {
+                        if mounted_drive_info[3] != "" {
+                            mounts.push(String::from(mounted_drive_info[3]));
+                        }
+                    }
+
+                } else if mount_info.len() == 2 {
+                    mounts.push(String::from(mount_info[1]));
                 }
-
-                }                
+            }
 
         }
     }
+    mounts
 }
 
 pub fn find_mount_drives() -> Result<(), Box<dyn Error>> {

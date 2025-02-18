@@ -19,6 +19,7 @@ use std::{
     PathBuf,
     Path
     },
+    process,
 };
 
 use ratatui_explorer::{FileExplorer, Theme};
@@ -32,6 +33,7 @@ use crate::styles::{
 };
 
 use whoami::username;
+use crate::mount::identify_mounted_drives;
 
 
 pub struct FileSelectWidget {
@@ -140,15 +142,21 @@ impl FileSelectWidget {
     }
 
     fn setup_file_explorer(&mut self) {
-        
-        if let Some(username) = whoami::username() {
-            let path_buf: PathBuf = ["/media/", username].iter().collect();
+        let mounted_drives = identify_mounted_drives();
+        println!("{:?}", mounted_drives);
+        let username = whoami::username();
+        if mounted_drives.len() > 1 && !username.is_empty() {
+            let path_buf: PathBuf = ["/media/", &username].iter().collect();
+            self.file_explorer.set_cwd(&path_buf).unwrap();
+        } else if mounted_drives.len() == 1 {
+            self.file_explorer.set_cwd(&mounted_drives[0]).unwrap();
+        } else if !username.is_empty() {
+            let username = whoami::username();
+            let path_buf: PathBuf = ["/home/", &username].iter().collect();
             self.file_explorer.set_cwd(path_buf).unwrap();
         } else {
-            self.file_explorer.set_cwd("/media/").unwrap();
+            self.file_explorer.set_cwd("/home/").unwrap();
         }
-
-
     }
     
     fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
