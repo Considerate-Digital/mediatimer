@@ -37,14 +37,11 @@ mod reboot;
 use crate::reboot::RebootWidget;
 
 mod mount;
-use crate::mount::find_mount_drives;
 
 mod styles;
 
-/*
 mod timings;
 use crate::timings::TimingsWidget;
-*/
 
 #[derive(Debug, Display, PartialEq)]
 pub enum ProcType {
@@ -63,15 +60,40 @@ pub enum Reboot {
     Yes,
     No
 }
-#[derive( Debug)]
+#[derive(Display, Debug)]
 pub enum Weekday {
-    Monday(Vec<(u32, u32)>),
-    Tuesday(Vec<(u32, u32)>),
-    Wednesday(Vec<(u32, u32)>),
-    Thursday(Vec<(u32, u32)>),
-    Friday(Vec<(u32, u32)>),
-    Saturday(Vec<(u32, u32)>),
-    Sunday(Vec<(u32, u32)>),
+    Monday(Vec<(String, String)>),
+    Tuesday(Vec<(String, String)>),
+    Wednesday(Vec<(String, String)>),
+    Thursday(Vec<(String, String)>),
+    Friday(Vec<(String, String)>),
+    Saturday(Vec<(String, String)>),
+    Sunday(Vec<(String, String)>),
+}
+
+impl Weekday {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Weekday::Monday => "Monday",
+            Weekday::Tuesday => "Tuesday",
+            Weekday::Wednesday => "Wednesday",
+            Weekday::Thursday => "Thursday",
+            Weekday::Friday => "Friday",
+            Weekday::Saturday => "Saturday",
+            Weekday::Sunday => "Sunday"
+        }
+    }
+    fn timings(&self) -> Vec<(String, String)> {
+        match self {
+            Weekday::Monday(schedule) => schedule,
+            Weekday::Tuesday(schedule) => schedule,
+            Weekday::Wednesday(schedule) => schedule,
+            Weekday::Thursday(schedule) => schedule,
+            Weekday::Friday(schedule) => schedule,
+            Weekday::Saturday(schedule) => schedule,
+            Weekday::Sunday(schedule) => schedule
+        }
+    }
 }
 
 type Timings = Vec<Weekday>;
@@ -213,7 +235,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     //returns Ok(Timings)
-    //let timings = TimingsWidget::default().run(&mut terminal)?;
+    let timings = TimingsWidget::default().run(&mut terminal)?;
 
     // if the selected file is on a usb stick
     // edit fstab to automount that usb

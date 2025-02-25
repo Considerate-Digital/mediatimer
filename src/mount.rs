@@ -4,8 +4,6 @@ use std:: {
         Command,
         Stdio
     },
-    thread,
-    time::Duration
 };
 use regex::Regex;
 

@@ -19,7 +19,6 @@ use std::{
     PathBuf,
     Path
     },
-    process,
 };
 
 use ratatui_explorer::{FileExplorer, Theme};
@@ -32,7 +31,6 @@ use crate::styles::{
     TEXT_DIR_COLOR
 };
 
-use whoami::username;
 use crate::mount::identify_mounted_drives;
 
 

@@ -1,29 +1,36 @@
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, read},
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        palette::tailwind::{BLUE, GREEN, SLATE},
-        Color, Modifier, Style, Stylize,
+        Color, Stylize,
     },
     symbols,
     text::Line,
     widgets::{
-        Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
+        Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph, Clear,
         StatefulWidget, Widget, Wrap,
     },
     DefaultTerminal,
 };
-use tui_textarea::TextArea;
 
 use std::error::Error;
 use crate::Timings;
 use crate::Weekday;
 
+use crate::styles::{
+    ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
+    ALT_ROW_BG_COLOR,
+    SELECTED_STYLE,
+    TEXT_FG_COLOR,
+};
+
+
 
 pub struct TimingsWidget {
     should_exit: bool,
-    list_element_entries: TimingsList
+    list_element_entries: TimingsList,
 }
 
 struct TimingsList {
@@ -43,12 +50,13 @@ impl FromIterator<(Timings, &'static str)> for TimingsList {
 }
 struct TimingsEntry {
     list_element: Weekday,
+    timings: Vec<String, String>,
     info: String,
 }
 
 impl From<&TimingsEntry> for ListItem<'_> {
     fn from(value: &TimingsEntry) -> Self {
-        let line = Line::styled(format!("{}", value.list_element.to_string()), TEXT_FG_COLOR);
+        let line = Line::styled(format!("{}", value.list_element.as_str()), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -66,11 +74,14 @@ impl Default for TimingsWidget {
     fn default() -> Self {
         Self {
             should_exit: false,
-            text_area: TextArea::default(),
             list_element_entries: TimingsList::from_iter([
-                (Weekday::Monday(vec![(0900, 1700)]), "Enter the start and end timings for this day."),
-
-
+                (Weekday::Monday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Tuesday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Wednesday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Thursday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Friday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Saturday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Sunday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
             ]),
         }
     }
@@ -205,6 +216,7 @@ const fn alternate_colors(i: usize) -> Color {
 
 impl Widget for &mut TimingsWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        Clear.render(area, buf);
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
