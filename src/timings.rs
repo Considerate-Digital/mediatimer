@@ -1,12 +1,13 @@
+use derive_setters::Setters;
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
-        Color, Stylize,
+        Color, Stylize, Style
     },
     symbols,
-    text::Line,
+    text::{Line, Text},
     widgets::{
         Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph, Clear,
         StatefulWidget, Widget, Wrap,
@@ -26,11 +27,38 @@ use crate::styles::{
     TEXT_FG_COLOR,
 };
 
+#[derive(Debug, Default, Setters)]
+struct Popup<'a> {
+    #[setters(into)]
+    title: Line<'a>,
+    #[setters(into)]
+    content: Text<'a>,
+    border_style: Style,
+    title_style: Style,
+    style: Style
+}
 
+impl Widget for Popup<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        Clear.render(area, buf);
+        let block = Block::new()
+            .title(self.title)
+            .title_style(self.title_style)
+            .borders(Borders::ALL)
+            .border_style(self.border_style);
+
+        Paragraph::new(self.content)
+            .wrap(Wrap { trim:true })
+            .style(self.style)
+            .block(block)
+            .render(area, buf);
+    }
+}
 
 pub struct TimingsWidget {
     should_exit: bool,
     list_element_entries: TimingsList,
+    schedule: Vec<Weekday>
 }
 
 struct TimingsList {
@@ -38,8 +66,8 @@ struct TimingsList {
     state: ListState
 }
 
-impl FromIterator<(Timings, &'static str)> for TimingsList {
-    fn from_iter<I: IntoIterator<Item = (Timings, &'static str)>>(iter: I) -> Self {
+impl FromIterator<(Weekday, &'static str)> for TimingsList {
+    fn from_iter<I: IntoIterator<Item = (Weekday, &'static str)>>(iter: I) -> Self {
         let list = iter
             .into_iter()
             .map(|(list_element, info)| TimingsEntry::new(list_element, info))
@@ -49,8 +77,8 @@ impl FromIterator<(Timings, &'static str)> for TimingsList {
     }
 }
 struct TimingsEntry {
-    list_element: Weekday,
-    timings: Vec<String, String>,
+    list_element: String,
+    timings: Vec<(String, String)>,
     info: String,
 }
 
@@ -62,9 +90,10 @@ impl From<&TimingsEntry> for ListItem<'_> {
 }
 
 impl TimingsEntry {
-    fn new(list_element: Timings, info: &str) -> Self {
+    fn new(weekday: Weekday, info: &str) -> Self {
         Self {
-            list_element,
+            list_element: weekday.to_string(),
+            timings: weekday.timings(),
             info: info.to_string()
         }
     }
@@ -75,28 +104,29 @@ impl Default for TimingsWidget {
         Self {
             should_exit: false,
             list_element_entries: TimingsList::from_iter([
-                (Weekday::Monday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Tuesday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Wednesday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Thursday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Friday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Saturday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
-                (Weekday::Sunday(vec![(String::from(09:00), String::from(17:00))]), "Enter the start and end timings for this day."),
+                (Weekday::Monday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Tuesday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Wednesday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Thursday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Friday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Saturday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
+                (Weekday::Sunday(vec![(String::from("09:00"), String::from("17:00"))]), "Enter the start and end timings for this day."),
             ]),
+            schedule: Vec::with_capacity(7)
         }
     }
 }
 
 impl TimingsWidget {
-    pub fn run (mut self, mut terminal: DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
+    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
                 self.handle_key(key);
-                self.text_area.input(key);
+                //self.text_area.input(key);
             };
         }
-        Ok(self.selected_type)
+        Ok(self.schedule)
     }
 
     fn handle_key(&mut self, key: KeyEvent) {
@@ -112,7 +142,7 @@ impl TimingsWidget {
             KeyCode::Char('G') | KeyCode::End => self.select_last(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                 // add code to select the list item
-                self.should_exit = true;
+                // render popup now using current selection
             }
             _ => {}
         }
@@ -234,7 +264,24 @@ impl Widget for &mut TimingsWidget {
         TimingsWidget::render_footer(footer_area, buf);
         self.render_list(list_area, buf);
         self.render_selected_item(item_area, buf);
-    }
 
+        if 1 > 0 {
+            let popup_area = Rect {
+                x: area.width / 4,
+                y: area.height / 3,
+                width: area.width / 2,
+                height: area.height / 3,
+            };
+
+            let popup = Popup::default()
+                .content("hello")
+                .style(SELECTED_STYLE)
+                .title("Select a timing")
+                .border_style(ITEM_HEADER_STYLE)
+                .render(popup_area, buf);
+
+
+        }
+    }
 }
 

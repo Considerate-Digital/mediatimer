@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 clokwerk = "0.4.0"
 crossterm = "0.28.1"
+derive_setters = "0.1.6"
 dotenvy = "0.15.7"
 home = "0.5.9"
 ratatui = "0.29.0"

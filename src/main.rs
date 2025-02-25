@@ -74,24 +74,36 @@ pub enum Weekday {
 impl Weekday {
     fn as_str(&self) -> &'static str {
         match self {
-            Weekday::Monday => "Monday",
-            Weekday::Tuesday => "Tuesday",
-            Weekday::Wednesday => "Wednesday",
-            Weekday::Thursday => "Thursday",
-            Weekday::Friday => "Friday",
-            Weekday::Saturday => "Saturday",
-            Weekday::Sunday => "Sunday"
+            Weekday::Monday(_) => "Monday",
+            Weekday::Tuesday(_) => "Tuesday",
+            Weekday::Wednesday(_) => "Wednesday",
+            Weekday::Thursday(_) => "Thursday",
+            Weekday::Friday(_) => "Friday",
+            Weekday::Saturday(_) => "Saturday",
+            Weekday::Sunday(_) => "Sunday"
         }
     }
+    fn to_string(&self) -> String {
+        match self {
+            Weekday::Monday(_) => String::from("Monday"),
+            Weekday::Tuesday(_) => String::from("Tuesday"),
+            Weekday::Wednesday(_) => String::from("Wednesday"),
+            Weekday::Thursday(_) => String::from("Thursday"),
+            Weekday::Friday(_) => String::from("Friday"),
+            Weekday::Saturday(_) => String::from("Saturday"),
+            Weekday::Sunday(_) => String::from("Sunday")
+        }
+    }
+
     fn timings(&self) -> Vec<(String, String)> {
         match self {
-            Weekday::Monday(schedule) => schedule,
-            Weekday::Tuesday(schedule) => schedule,
-            Weekday::Wednesday(schedule) => schedule,
-            Weekday::Thursday(schedule) => schedule,
-            Weekday::Friday(schedule) => schedule,
-            Weekday::Saturday(schedule) => schedule,
-            Weekday::Sunday(schedule) => schedule
+            Weekday::Monday(schedule) => schedule.to_vec(),
+            Weekday::Tuesday(schedule) => schedule.to_vec(),
+            Weekday::Wednesday(schedule) => schedule.to_vec(),
+            Weekday::Thursday(schedule) => schedule.to_vec(),
+            Weekday::Friday(schedule) => schedule.to_vec(),
+            Weekday::Saturday(schedule) => schedule.to_vec(),
+            Weekday::Sunday(schedule) => schedule.to_vec()
         }
     }
 }
