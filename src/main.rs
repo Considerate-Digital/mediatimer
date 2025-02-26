@@ -41,7 +41,10 @@ mod mount;
 mod styles;
 
 mod timings;
-use crate::timings::TimingsWidget;
+use crate::timings::{
+    TimingsWidget,
+    TimingCollection
+};
 
 #[derive(Debug, Display, PartialEq)]
 pub enum ProcType {
@@ -62,13 +65,13 @@ pub enum Reboot {
 }
 #[derive(Display, Debug)]
 pub enum Weekday {
-    Monday(Vec<(String, String)>),
-    Tuesday(Vec<(String, String)>),
-    Wednesday(Vec<(String, String)>),
-    Thursday(Vec<(String, String)>),
-    Friday(Vec<(String, String)>),
-    Saturday(Vec<(String, String)>),
-    Sunday(Vec<(String, String)>),
+    Monday(TimingCollection),
+    Tuesday(TimingCollection),
+    Wednesday(TimingCollection),
+    Thursday(TimingCollection),
+    Friday(TimingCollection),
+    Saturday(TimingCollection),
+    Sunday(TimingCollection),
 }
 
 impl Weekday {
@@ -95,15 +98,15 @@ impl Weekday {
         }
     }
 
-    fn timings(&self) -> Vec<(String, String)> {
+    fn timings(&self) -> TimingCollection {
         match self {
-            Weekday::Monday(schedule) => schedule.to_vec(),
-            Weekday::Tuesday(schedule) => schedule.to_vec(),
-            Weekday::Wednesday(schedule) => schedule.to_vec(),
-            Weekday::Thursday(schedule) => schedule.to_vec(),
-            Weekday::Friday(schedule) => schedule.to_vec(),
-            Weekday::Saturday(schedule) => schedule.to_vec(),
-            Weekday::Sunday(schedule) => schedule.to_vec()
+            Weekday::Monday(schedule) => schedule.clone(),
+            Weekday::Tuesday(schedule) => schedule.clone(),
+            Weekday::Wednesday(schedule) => schedule.clone(),
+            Weekday::Thursday(schedule) => schedule.clone(),
+            Weekday::Friday(schedule) => schedule.clone(),
+            Weekday::Saturday(schedule) => schedule.clone(),
+            Weekday::Sunday(schedule) => schedule.clone()
         }
     }
 }
