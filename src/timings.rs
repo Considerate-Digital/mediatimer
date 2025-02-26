@@ -352,7 +352,12 @@ impl TimingsWidget {
                             match op {
                                 TimingOp::Add => self.current_screen = CurrentScreen::Add,
                                 TimingOp::Del => self.current_screen = CurrentScreen::Delete,
-                                TimingOp::Edit => self.current_screen = CurrentScreen::Edit,
+                                TimingOp::Edit => {
+
+                                    self.input.push_str(&self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format()); 
+                                    self.character_index = self.input.chars().count();
+                                    self.current_screen = CurrentScreen::Edit
+                                },
                             };
                         };
 
@@ -681,7 +686,6 @@ impl TimingsWidget {
 
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
-        self.input = self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format(); 
 
         let input = Paragraph::new(self.input.as_str()) 
            .style(SELECTED_STYLE)
@@ -689,7 +693,7 @@ impl TimingsWidget {
            .block(
                Block::bordered()
                .style(ITEM_HEADER_STYLE)
-               .title("Add timing")
+               .title("Edit timing")
            )
            .render(area, buf);
 
