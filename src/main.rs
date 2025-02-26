@@ -30,6 +30,9 @@ use crate::fileselect::FileSelectWidget;
 mod autoloop;
 use crate::autoloop::AutoloopWidget;
 
+mod advanced_schedule;
+use crate::advanced_schedule::AdvancedScheduleWidget;
+
 mod landing;
 use crate::landing::LandingWidget;
 
@@ -41,9 +44,9 @@ mod mount;
 mod styles;
 
 mod timings;
+
 use crate::timings::{
-    TimingsWidget,
-    TimingCollection
+    TimingsWidget
 };
 
 #[derive(Debug, Display, PartialEq)]
@@ -58,20 +61,32 @@ pub enum Autoloop {
     Yes,
     No
 }
+
+#[derive(Debug, Display, PartialEq)]
+pub enum AdvancedSchedule {
+    Yes,
+    No
+}
+
+
 #[derive(Debug, Display, PartialEq)]
 pub enum Reboot {
     Yes,
     No
 }
+
+type Schedule = Vec<(String, String)>;
+type Timings = Vec<Weekday>;
+
 #[derive(Display, Debug)]
 pub enum Weekday {
-    Monday(TimingCollection),
-    Tuesday(TimingCollection),
-    Wednesday(TimingCollection),
-    Thursday(TimingCollection),
-    Friday(TimingCollection),
-    Saturday(TimingCollection),
-    Sunday(TimingCollection),
+    Monday(Schedule),
+    Tuesday(Schedule),
+    Wednesday(Schedule),
+    Thursday(Schedule),
+    Friday(Schedule),
+    Saturday(Schedule),
+    Sunday(Schedule),
 }
 
 impl Weekday {
@@ -98,7 +113,7 @@ impl Weekday {
         }
     }
 
-    fn timings(&self) -> TimingCollection {
+    fn timings(&self) -> Schedule {
         match self {
             Weekday::Monday(schedule) => schedule.clone(),
             Weekday::Tuesday(schedule) => schedule.clone(),
@@ -111,7 +126,18 @@ impl Weekday {
     }
 }
 
-type Timings = Vec<Weekday>;
+fn default_timings() -> Timings {
+    vec![
+        Weekday::Monday(Vec::new()),
+        Weekday::Tuesday(Vec::new()),
+        Weekday::Wednesday(Vec::new()),
+        Weekday::Thursday(Vec::new()),
+        Weekday::Friday(Vec::new()),
+        Weekday::Saturday(Vec::new()),
+        Weekday::Sunday(Vec::new()),
+    ]
+}
+
 
 /// This program runs one task at custom intervals. The task can also be looped.
 /// Commonly this is used for playing media files at certain times.
@@ -122,15 +148,17 @@ type Timings = Vec<Weekday>;
 struct Task {
     proc_type: ProcType,
     auto_loop: Autoloop,
+    advanced_schedule: AdvancedSchedule,
     timings: Timings,
     file: PathBuf
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: Autoloop, timings: Timings, file: PathBuf) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf) -> Self {
         Task {
             proc_type,
             auto_loop,
+            advanced_schedule,
             timings,
             file
         }
@@ -165,27 +193,45 @@ fn write_task(task: Task) -> Result<(), IoError> {
        let _ = writeln!(file, "ML_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
-        let _ = writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
+       let _ = writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
             Autoloop::Yes => "true",
             Autoloop::No => "false"
         });
+       let _ = writeln!(file, "ML_SCHEDULE=\"{}\"", match task.advanced_schedule {
+            AdvancedSchedule::Yes => "true",
+            AdvancedSchedule::No => "false"
+       });
 
        // TODO write timings
        // create print each day as one env var and separate timings using " ".
        // format is START-STOP e.g. 0900-1500
-       /*
-       for timing in task.timings.iter() {
-          let day_times_fmt = timing.iter().map(|i| format!("{}-{}", i.0, i.1).collect();
-           if let Err(e) = writeln!(file, "ML_{}={}", timing.to_string().to_uppercase(), day_times_fmt.join(,)) {
+       //
+       // This function should be converted to a closure
+       fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
+           let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
+           if let Err(e) = writeln!(file, "ML_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
                eprintln!("Could not write to file: {}", e);
            }
        }
-       */
+       for timing in task.timings.iter() {
+           if let Ok(file_clone) = file.try_clone() {
+               match timing {
+                   Weekday::Monday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Tuesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Wednesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Thursday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Friday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Saturday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   Weekday::Sunday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                   _ => {}
+              }
+           }
+       }
        
 
        // write file
        let _ = writeln!(file, "ML_FILE=\"{}\"", task.file.display())?;
-
+        /*
        // advanced use
        let _ = writeln!(file, "# Change this to 'true' if you want to use a custom schedule");
        let _ = writeln!(file, "ML_SCHEDULE=\"false\"");
@@ -194,6 +240,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
        let schedule = "#ML_MONDAY=\"09:00-12:00,13:00-17:00\"\n#ML_TUESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_WEDNESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_THURSDAY=\"09:00-12:00,13:00-17:00\"\n#ML_FRIDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SATURDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SUNDAY=\"09:00-12:00,13:00-17:00\"\n";
        let _ = writeln!(file, "# Remove the '#' at the start of each day that you require a customised schedule for.\n# Edit the timings and add new entries if needed.\n# Make sure the timings have the format START-END and are comma (',') separated with no spaces.\n# Schedule timings can be specified in either minute-format (10:00) or second-format (10:00:00)\n# Note that the auto-loop feature only applies to media files and you must implement internal loops yourself for browser-based or executable files.");
        let _ = writeln!(file, "{}", schedule);
+        */
             
 
    } else {
@@ -248,14 +295,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         autoloop = AutoloopWidget::default().run(&mut terminal)?;
     }
 
+    let advanced_schedule = AdvancedScheduleWidget::default().run(&mut terminal)?;
 
-    //returns Ok(Timings)
-    let timings = TimingsWidget::default().run(&mut terminal)?;
+    let mut timings = default_timings();
+    if advanced_schedule == AdvancedSchedule::Yes {
+        //returns Ok(Timings)
+        timings = TimingsWidget::default().run(&mut terminal)?;
+    }
 
-    // if the selected file is on a usb stick
-    // edit fstab to automount that usb
-    let timings = Vec::new();
-    let task = Task::new(proctype, autoloop, timings, file_path);
+    let task = Task::new(proctype, autoloop, advanced_schedule, timings, file_path);
 
     // write a function that writes the task to a specific env file
     // write_task 

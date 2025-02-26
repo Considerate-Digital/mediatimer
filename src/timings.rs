@@ -16,8 +16,13 @@ use ratatui::{
 };
 
 use std::error::Error;
+use std::process;
 use crate::Timings;
-use crate::Weekday;
+use crate::Weekday as CommonWeekday;
+use crate::Schedule as CommonSchedule;
+use crate::Timings as CommonTimings;
+
+use strum::Display;
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
@@ -26,6 +31,56 @@ use crate::styles::{
     SELECTED_STYLE,
     TEXT_FG_COLOR,
 };
+
+// This is declared twice due to the TUI list structure requirements and must be converted 
+// between main and this module
+#[derive(Display, Debug)]
+pub enum Weekday {
+    Monday(TimingCollection),
+    Tuesday(TimingCollection),
+    Wednesday(TimingCollection),
+    Thursday(TimingCollection),
+    Friday(TimingCollection),
+    Saturday(TimingCollection),
+    Sunday(TimingCollection),
+}
+
+impl Weekday {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Weekday::Monday(_) => "Monday",
+            Weekday::Tuesday(_) => "Tuesday",
+            Weekday::Wednesday(_) => "Wednesday",
+            Weekday::Thursday(_) => "Thursday",
+            Weekday::Friday(_) => "Friday",
+            Weekday::Saturday(_) => "Saturday",
+            Weekday::Sunday(_) => "Sunday"
+        }
+    }
+    fn to_string(&self) -> String {
+        match self {
+            Weekday::Monday(_) => String::from("Monday"),
+            Weekday::Tuesday(_) => String::from("Tuesday"),
+            Weekday::Wednesday(_) => String::from("Wednesday"),
+            Weekday::Thursday(_) => String::from("Thursday"),
+            Weekday::Friday(_) => String::from("Friday"),
+            Weekday::Saturday(_) => String::from("Saturday"),
+            Weekday::Sunday(_) => String::from("Sunday")
+        }
+    }
+
+    fn timings(&self) -> TimingCollection {
+        match self {
+            Weekday::Monday(schedule) => schedule.clone(),
+            Weekday::Tuesday(schedule) => schedule.clone(),
+            Weekday::Wednesday(schedule) => schedule.clone(),
+            Weekday::Thursday(schedule) => schedule.clone(),
+            Weekday::Friday(schedule) => schedule.clone(),
+            Weekday::Saturday(schedule) => schedule.clone(),
+            Weekday::Sunday(schedule) => schedule.clone()
+        }
+    }
+}
 
 #[derive(Debug, Default, Setters)]
 struct Popup<'a> {
@@ -250,7 +305,7 @@ pub struct TimingsWidget {
     del_op_list: DelOpList,
     exit_list: ExitList,
     list_element_entries: TimingsList,
-    schedule: Vec<Weekday>
+    schedule: CommonTimings
 }
 
 struct TimingsList {
@@ -345,6 +400,34 @@ impl TimingsWidget {
         Ok(self.schedule)
     }
 
+    fn compile_schedule(&mut self) {
+        for t_list in &self.list_element_entries.list {
+            let mut cs: CommonSchedule = Vec::with_capacity(1);
+            for t in t_list.timings.timing_collection.iter() {
+                let (start, end) = &t.timing;
+                let schedule_item = (
+                    String::from(&start.to_string()),
+                    String::from(&end.to_string())
+                );
+                cs.push(schedule_item);
+            }
+            
+            // here we are converting to the data structure expected in main
+            let wd = match t_list.list_element.as_str() {
+                "Monday" => CommonWeekday::Monday(cs.clone()),
+                "Tuesday" => CommonWeekday::Tuesday(cs.clone()),
+                "Wednesday" => CommonWeekday::Wednesday(cs.clone()),
+                "Thursday" => CommonWeekday::Thursday(cs.clone()),
+                "Friday" => CommonWeekday::Friday(cs.clone()),
+                "Saturday" => CommonWeekday::Saturday(cs.clone()),
+                "Sunday" => CommonWeekday::Sunday(cs.clone()),
+                _ => CommonWeekday::Monday(cs.clone()),
+
+            };
+            self.schedule.push(wd);
+        }
+    }
+
     fn handle_key(&mut self, key: KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
@@ -422,10 +505,13 @@ impl TimingsWidget {
                                 TimingOp::Add => self.current_screen = CurrentScreen::Add,
                                 TimingOp::Del => self.current_screen = CurrentScreen::Delete,
                                 TimingOp::Edit => {
-
-                                    self.input.push_str(&self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format()); 
-                                    self.character_index = self.input.chars().count();
-                                    self.current_screen = CurrentScreen::Edit
+                                    if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+                                        self.input.push_str(&self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format()); 
+                                        self.character_index = self.input.chars().count();
+                                        self.current_screen = CurrentScreen::Edit
+                                    } else {
+                                        self.reverse_state();
+                                    }
                                 },
                             };
                         };
@@ -519,6 +605,7 @@ impl TimingsWidget {
                             match self.exit_list.del_list[i].item.as_str() {
                                 "Yes" => {
                                     // compile the schedule here
+                                    self.compile_schedule();                         
                                     self.should_exit = true;
                                 },
                                 _ => {}
@@ -565,7 +652,7 @@ impl TimingsWidget {
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_next(),
-            CurrentScreen::Exit => self.exit_list.select_next()
+            CurrentScreen::Exit => self.exit_list.state.select_next()
         }
     }
     fn select_previous(&mut self) {
@@ -576,7 +663,7 @@ impl TimingsWidget {
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_previous(),
-            CurrentScreen::Exit => self.exit_list.select_previous()
+            CurrentScreen::Exit => self.exit_list.state.select_previous()
         }
 
     }
@@ -588,7 +675,7 @@ impl TimingsWidget {
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_first(),
-            CurrentScreen::Exit => self.exit_list.select_first()
+            CurrentScreen::Exit => self.exit_list.state.select_first()
         }
 
     }
@@ -600,7 +687,7 @@ impl TimingsWidget {
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_last(),
-            CurrentScreen::Exit => self.exit_list.select_last()
+            CurrentScreen::Exit => self.exit_list.state.select_last()
         }
     }
 
