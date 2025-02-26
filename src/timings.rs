@@ -164,12 +164,77 @@ impl TimingOpItem {
     }
 }
 
+
+
 impl From<&TimingOpItem> for ListItem<'_> {
     fn from(value: &TimingOpItem) -> Self {
         let line = Line::styled(format!("{}", value.op_item), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
+struct DelOpItem {
+    item: String
+}
+impl DelOpItem {
+    fn new(item: &str) -> DelOpItem {
+        DelOpItem {
+            item: String::from(item)
+        }
+    }
+}
+struct DelOpList {
+    del_list: Vec<DelOpItem>,
+    state: ListState
+}
+impl DelOpList {
+    fn default() -> DelOpList {
+        let mut state = ListState::default();
+        state.select_first();
+        DelOpList {
+            del_list: vec![DelOpItem::new("Yes"), DelOpItem::new("No")],
+            state
+        }
+    }
+}
+
+impl From<&DelOpItem> for ListItem<'_> {
+    fn from(value: &DelOpItem) -> Self {
+        let line = Line::styled(format!("{}", value.item), TEXT_FG_COLOR);
+        ListItem::new(line)
+    }
+}
+struct ExitItem {
+    item: String
+}
+impl ExitItem {
+    fn new(item: &str) -> ExitItem {
+        ExitItem {
+            item: String::from(item)
+        }
+    }
+}
+struct ExitList {
+    del_list: Vec<ExitItem>,
+    state: ListState
+}
+impl ExitList {
+    fn default() -> ExitList {
+        let mut state = ListState::default();
+        state.select_first();
+        ExitList {
+            del_list: vec![ExitItem::new("Yes"), ExitItem::new("No")],
+            state
+        }
+    }
+}
+
+impl From<&ExitItem> for ListItem<'_> {
+    fn from(value: &ExitItem) -> Self {
+        let line = Line::styled(format!("{}", value.item), TEXT_FG_COLOR);
+        ListItem::new(line)
+    }
+}
+
 
 pub struct TimingsWidget {
     should_exit: bool,
@@ -182,6 +247,8 @@ pub struct TimingsWidget {
     input: String,
     character_index: usize,
     input_area: Rect,
+    del_op_list: DelOpList,
+    exit_list: ExitList,
     list_element_entries: TimingsList,
     schedule: Vec<Weekday>
 }
@@ -238,6 +305,8 @@ impl Default for TimingsWidget {
             input: String::new(),
             character_index: 0,
             input_area: Rect::new(0,0,0,0),
+            del_op_list: DelOpList::default(),
+            exit_list: ExitList::default(),
             list_element_entries: TimingsList::from_iter([
                 (Weekday::Monday(TimingCollection::default()), "Enter the start and end timings for this day."),
                 (Weekday::Tuesday(TimingCollection::default()), "Enter the start and end timings for this day."),
@@ -283,7 +352,7 @@ impl TimingsWidget {
         match self.current_screen {
             CurrentScreen::Weekdays => {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => self.should_exit = true,
+                    KeyCode::Char('q') | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
                     //KeyCode::Char('h') | KeyCode::Left => self.select_none(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -306,7 +375,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Day => {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => self.should_exit = true,
+                    KeyCode::Char('q') | KeyCode::Esc => self.reverse_state(),
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -327,7 +396,7 @@ impl TimingsWidget {
             },
             CurrentScreen::TimingOptions => {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => self.should_exit = true,
+                    KeyCode::Char('q') | KeyCode::Esc => self.reverse_state(),
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -417,10 +486,25 @@ impl TimingsWidget {
 
             CurrentScreen::Delete => {
                 match key.code {
-                    KeyCode::Char('h') | KeyCode::Left => self.reverse_state(),
+                    KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
+                    KeyCode::Char('g') | KeyCode::Home => self.select_first(),
+                    KeyCode::Char('G') | KeyCode::End => self.select_last(),
                     KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                         // add code to select the list item
                         // render popup now using current selection
+                        if let Some(i) = self.del_op_list.state.selected() {
+                            match self.del_op_list.del_list[i].item.as_str() {
+                                "Yes" => {
+                                    if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+                                        self.list_element_entries.list[self.weekday_selected].timings.timing_collection.remove(self.timing_selected);
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
+                        self.reverse_state();
                     }
                     _ => {}
                 }
@@ -431,7 +515,16 @@ impl TimingsWidget {
                     KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                         // add code to select the list item
                         // render popup now using current selection
-                    }
+                        if let Some(i) = self.exit_list.state.selected() {
+                            match self.exit_list.del_list[i].item.as_str() {
+                                "Yes" => {
+                                    // compile the schedule here
+                                    self.should_exit = true;
+                                },
+                                _ => {}
+                            }
+                        }
+                    },
                     _ => {}
                 }
 
@@ -459,7 +552,7 @@ impl TimingsWidget {
             CurrentScreen::Add => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Edit => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
-            CurrentScreen::Exit => self.current_screen = CurrentScreen::Day
+            CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
         }
 
     }
@@ -471,8 +564,8 @@ impl TimingsWidget {
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_next(),
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
-            CurrentScreen::Delete => {},
-            CurrentScreen::Exit => {}
+            CurrentScreen::Delete => self.del_op_list.state.select_next(),
+            CurrentScreen::Exit => self.exit_list.select_next()
         }
     }
     fn select_previous(&mut self) {
@@ -482,8 +575,8 @@ impl TimingsWidget {
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_previous(),
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
-            CurrentScreen::Delete => {},
-            CurrentScreen::Exit => {}
+            CurrentScreen::Delete => self.del_op_list.state.select_previous(),
+            CurrentScreen::Exit => self.exit_list.select_previous()
         }
 
     }
@@ -494,8 +587,8 @@ impl TimingsWidget {
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_first(),
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
-            CurrentScreen::Delete => {},
-            CurrentScreen::Exit => {}
+            CurrentScreen::Delete => self.del_op_list.state.select_first(),
+            CurrentScreen::Exit => self.exit_list.select_first()
         }
 
     }
@@ -506,12 +599,11 @@ impl TimingsWidget {
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_last(),
             CurrentScreen::Add => {},
             CurrentScreen::Edit => {},
-            CurrentScreen::Delete => {},
-            CurrentScreen::Exit => {}
+            CurrentScreen::Delete => self.del_op_list.state.select_last(),
+            CurrentScreen::Exit => self.exit_list.select_last()
         }
-
-
     }
+
     // TODO cursor movement is not yet implemented due to having to set the position on the 
     // frame, and needed to pass the frame to the render function somehow
     fn move_cursor_left(&mut self) {
@@ -572,7 +664,7 @@ impl TimingsWidget {
     }
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+        Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.")
             .centered()
             .render(area, buf);
     }
@@ -608,38 +700,55 @@ impl TimingsWidget {
     }
 
     fn render_day_list(&mut self, area: Rect, buf: &mut Buffer) {
-        let block = Block::new()
-            .title(Line::raw("Edit the schedule").centered())
-            .borders(Borders::TOP | Borders::LEFT)
-            .border_set(symbols::border::EMPTY)
-            .border_style(ITEM_HEADER_STYLE)
-            .bg(NORMAL_ROW_BG);
+            
+        if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+            let block = Block::new()
+                .title(Line::raw("Edit the schedule").centered())
+                .borders(Borders::TOP | Borders::LEFT)
+                .border_set(symbols::border::EMPTY)
+                .border_style(ITEM_HEADER_STYLE)
+                .bg(NORMAL_ROW_BG);
 
-        // Iterate through all the timings in the weekday selected and stylise them
-        let items: Vec<ListItem> = self 
-            .list_element_entries
-            .list[self.weekday_selected]
-            .timings.timing_collection
-            .iter()
-            .enumerate()
-            .map(|(i, timings)| {
-                let color = alternate_colors(i);
-                let mut timings_joined = String::from(&timings.timing.0);
-                timings_joined.push_str("-");
-                timings_joined.push_str(&timings.timing.1);
-                
-                ListItem::from(timings_joined).bg(color)
-            })
-            .collect();
+            // Iterate through all the timings in the weekday selected and stylise them
+            let items: Vec<ListItem> = self 
+                .list_element_entries
+                .list[self.weekday_selected]
+                .timings.timing_collection
+                .iter()
+                .enumerate()
+                .map(|(i, timings)| {
+                    let color = alternate_colors(i);
+                    let mut timings_joined = String::from(&timings.timing.0);
+                    timings_joined.push_str("-");
+                    timings_joined.push_str(&timings.timing.1);
+                    
+                    ListItem::from(timings_joined).bg(color)
+                })
+                .collect();
 
-        // create a list from all the items and highlight the currently selected one
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(SELECTED_STYLE)
-            .highlight_symbol("> ")
-            .highlight_spacing(HighlightSpacing::Always);
-        // we have to diferentiate this "render" from the render fn on self
-        StatefulWidget::render(list, area, buf, &mut self.list_element_entries.list[self.weekday_selected].timings.state);
+            // create a list from all the items and highlight the currently selected one
+            let list = List::new(items)
+                .block(block)
+                .highlight_style(SELECTED_STYLE)
+                .highlight_symbol("> ")
+                .highlight_spacing(HighlightSpacing::Always);
+            // we have to diferentiate this "render" from the render fn on self
+            StatefulWidget::render(list, area, buf, &mut self.list_element_entries.list[self.weekday_selected].timings.state);
+        } else {
+            let input = Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
+               .style(SELECTED_STYLE)
+               .bg(NORMAL_ROW_BG)
+               .wrap(Wrap { trim:true })
+               .block(
+                   Block::new()
+                   .borders(Borders::TOP | Borders::LEFT)
+                   .border_set(symbols::border::EMPTY)
+                   .style(ITEM_HEADER_STYLE)
+                   .title(Line::raw("Add timing").centered())
+               )
+               .render(area, buf);
+
+        }
     }
 
     fn render_op_list(&mut self, area: Rect, buf: &mut Buffer) {
@@ -679,7 +788,7 @@ impl TimingsWidget {
            .block(
                Block::bordered()
                .style(ITEM_HEADER_STYLE)
-               .title("Add timing")
+               .title(Line::raw("Add timing").centered())
            )
            .render(area, buf);
     }
@@ -693,9 +802,72 @@ impl TimingsWidget {
            .block(
                Block::bordered()
                .style(ITEM_HEADER_STYLE)
-               .title("Edit timing")
+               .title(Line::raw("Edit timing").centered())
            )
            .render(area, buf);
+
+    }
+
+    fn render_delete(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+        let block = Block::new()
+            .title(Line::raw("Are you sure?").centered())
+            .borders(Borders::ALL)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .bg(NORMAL_ROW_BG);
+
+        // Iterate through all the timings in the weekday selected and stylise them
+        let items: Vec<ListItem> = self 
+            .del_op_list
+            .del_list
+            .iter()
+            .enumerate()
+            .map(|(i, option)| {
+                let color = alternate_colors(i);
+                ListItem::from(option).bg(color)
+            })
+            .collect();
+
+        // create a list from all the items and highlight the currently selected one
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_symbol("> ")
+            .highlight_spacing(HighlightSpacing::Always);
+        // we have to diferentiate this "render" from the render fn on self
+        StatefulWidget::render(list, area, buf, &mut self.del_op_list.state);
+    }
+
+    fn render_exit(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+        let block = Block::new()
+            .title(Line::raw("Are you finished?").centered())
+            .borders(Borders::ALL)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .bg(NORMAL_ROW_BG);
+
+        // Iterate through all the timings in the weekday selected and stylise them
+        let items: Vec<ListItem> = self 
+            .del_op_list
+            .del_list
+            .iter()
+            .enumerate()
+            .map(|(i, option)| {
+                let color = alternate_colors(i);
+                ListItem::from(option).bg(color)
+            })
+            .collect();
+
+        // create a list from all the items and highlight the currently selected one
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_symbol("> ")
+            .highlight_spacing(HighlightSpacing::Always);
+        // we have to diferentiate this "render" from the render fn on self
+        StatefulWidget::render(list, area, buf, &mut self.exit_list.state);
 
     }
 
@@ -820,7 +992,6 @@ impl Widget for &mut TimingsWidget {
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
 
-
                 self.render_op_list(popup_area, buf);
            },
             CurrentScreen::Add => {
@@ -882,8 +1053,57 @@ impl Widget for &mut TimingsWidget {
                 self.input_area = popup_area;
                 self.render_edit(popup_area, buf);
             },
-            CurrentScreen::Delete => {},
-            CurrentScreen::Exit => {},
+            CurrentScreen::Delete => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                let [weekdays_area, day_area] = Layout::horizontal([
+                    Constraint::Fill(1),
+                    Constraint::Fill(1)
+                ])
+                .areas(list_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+                self.render_weekdays_list(weekdays_area, buf);
+                self.render_day_list(day_area, buf);
+                self.render_selected_item(item_area, buf);
+
+                self.render_delete(popup_area, buf);
+            },
+            CurrentScreen::Exit => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+                self.render_weekdays_list(list_area, buf);
+                self.render_selected_item(item_area, buf);
+
+
+                self.render_delete(popup_area, buf);
+
+            },
         }
     }
 }
