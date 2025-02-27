@@ -41,7 +41,8 @@ impl FromIterator<(ProcType, &'static str)> for ProcTypeList {
             .into_iter()
             .map(|(proc_type, info)| ProcTypeEntry::new(proc_type, info))
             .collect();
-        let state = ListState::default();
+        let mut state = ListState::default();
+        state.select_first();
         Self { list, state }
     }
 }
@@ -82,6 +83,18 @@ impl Default for ProcTypeWidget {
 }
 
 impl ProcTypeWidget {
+    pub fn new(preset_type: ProcType) -> Self {
+        Self {
+            should_exit: false,
+            selected_type: preset_type,
+            proc_type_entries: ProcTypeList::from_iter([
+                (ProcType::Media, "A media file. Most video and audio formats are accepted."),
+                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
+                (ProcType::Executable, "A binary executable."),
+
+            ]),
+        }
+    }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
         while !self.should_exit {
             let _ = &terminal.draw(|f| f.render_widget(&mut self, f.area()))?;

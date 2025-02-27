@@ -21,6 +21,10 @@ use crate::styles::{
     ALT_ROW_BG_COLOR,
 };
 
+use crate::areas::{
+    popup_area
+};
+
 
 pub struct LandingWidget {
     should_exit: bool,
@@ -89,11 +93,15 @@ impl LandingWidget {
         let _para = Paragraph::new(
             vec![
                 Line::from(
-                        "Medialoop was created by Considerate Digital to help automate and control things in exhibition spaces."
+                        "Medialoop was created by Considerate Digital to automate"
                 ),
+                Line::from(
+                        "and control players in exhibition spaces."
+                ),
+
                 Line::from(""),
                 Line::from(
-                        "Let's get going!"
+                        "Press ENTER to start."
                 ),
             ])
             .block(block)
@@ -109,6 +117,7 @@ impl LandingWidget {
 
 impl Widget for &mut LandingWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
@@ -122,7 +131,7 @@ impl Widget for &mut LandingWidget {
         .areas(main_area);
         LandingWidget::render_header(header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
-        LandingWidget::render_text(center_area, buf);
+        LandingWidget::render_text(popup_area(area), buf);
     }
 }
 

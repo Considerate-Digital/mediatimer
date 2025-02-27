@@ -21,7 +21,7 @@ use crate::Timings;
 use crate::Weekday as CommonWeekday;
 use crate::Schedule as CommonSchedule;
 use crate::Timings as CommonTimings;
-
+use regex::Regex;
 use strum::Display;
 
 use crate::styles::{
@@ -109,6 +109,7 @@ impl Widget for Popup<'_> {
             .render(area, buf);
     }
 }
+#[derive(Debug, Clone)]
 enum CurrentScreen {
     Weekdays,
     Day,
@@ -116,6 +117,7 @@ enum CurrentScreen {
     Add,
     Edit,
     Delete,
+    Error,
     Exit
 }
 
@@ -269,7 +271,7 @@ impl ExitItem {
     }
 }
 struct ExitList {
-    del_list: Vec<ExitItem>,
+    exit_list_items: Vec<ExitItem>,
     state: ListState
 }
 impl ExitList {
@@ -277,7 +279,7 @@ impl ExitList {
         let mut state = ListState::default();
         state.select_first();
         ExitList {
-            del_list: vec![ExitItem::new("Yes"), ExitItem::new("No")],
+            exit_list_items: vec![ExitItem::new("Yes"), ExitItem::new("No")],
             state
         }
     }
@@ -294,6 +296,7 @@ impl From<&ExitItem> for ListItem<'_> {
 pub struct TimingsWidget {
     should_exit: bool,
     current_screen: CurrentScreen,
+    previous_screen: CurrentScreen,
     // selected weekdays and timings are indexes
     weekday_selected: usize,
     timing_selected: usize,
@@ -304,6 +307,7 @@ pub struct TimingsWidget {
     input_area: Rect,
     del_op_list: DelOpList,
     exit_list: ExitList,
+    error_message: String,
     list_element_entries: TimingsList,
     schedule: CommonTimings
 }
@@ -350,9 +354,11 @@ impl TimingsEntry {
 
 impl Default for TimingsWidget {
     fn default() -> Self {
+        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
         Self {
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
+            previous_screen: CurrentScreen::Weekdays,
             weekday_selected: 0,
             timing_selected: 0,
             operation_selected: TimingOp::Add,
@@ -362,14 +368,15 @@ impl Default for TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
+            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00"),
             list_element_entries: TimingsList::from_iter([
-                (Weekday::Monday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Tuesday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Wednesday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Thursday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Friday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Saturday(TimingCollection::default()), "Enter the start and end timings for this day."),
-                (Weekday::Sunday(TimingCollection::default()), "Enter the start and end timings for this day."),
+                (Weekday::Monday(TimingCollection::default()), info_text),
+                (Weekday::Tuesday(TimingCollection::default()), info_text),
+                (Weekday::Wednesday(TimingCollection::default()), info_text),
+                (Weekday::Thursday(TimingCollection::default()), info_text),
+                (Weekday::Friday(TimingCollection::default()), info_text),
+                (Weekday::Saturday(TimingCollection::default()), info_text),
+                (Weekday::Sunday(TimingCollection::default()), info_text),
             ]),
             schedule: Vec::with_capacity(7)
         }
@@ -506,6 +513,7 @@ impl TimingsWidget {
                                 TimingOp::Del => self.current_screen = CurrentScreen::Delete,
                                 TimingOp::Edit => {
                                     if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+                                        self.input.clear();
                                         self.input.push_str(&self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format()); 
                                         self.character_index = self.input.chars().count();
                                         self.current_screen = CurrentScreen::Edit
@@ -531,16 +539,22 @@ impl TimingsWidget {
                         // add the new timing!
                         //let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
                         // parse the timing
+                        /*
                         let new_t = self.input.as_str()
                             .split("-")
                             .map(|x| x.to_string())
                             .collect::<Vec<String>>();
                         let t = Timing::new(&new_t[0], &new_t[1]);
-
-                        self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
-                        self.reverse_state();
-                        self.input.clear();
-                        self.character_index = 0;
+                        */
+                        if self.timing_format_correct() {
+                            let t = self.parse_timing_from_input();
+                            self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
+                            self.reverse_state();
+                            self.input.clear();
+                            self.character_index = 0;
+                        } else {
+                            self.current_screen = CurrentScreen::Error;
+                        }
                     }
                     _ => {}
                 }
@@ -553,18 +567,17 @@ impl TimingsWidget {
                     KeyCode::Backspace => self.delete_char(),
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
-                        // add the new timing!
-                        //let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
-                        // parse the timing
-                        let new_t = self.input.as_str()
-                            .split("-")
-                            .map(|x| x.to_string())
-                            .collect::<Vec<String>>();
-                        let t = Timing::new(&new_t[0], &new_t[1]);
-                        let _removed = std::mem::replace(&mut self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected], t);
-                        self.reverse_state();
-                        self.input.clear();
-                        self.character_index = 0;
+                        // check, then parse the timing
+                        if self.timing_format_correct() {
+                            let t = self.parse_timing_from_input();
+                            let _removed = std::mem::replace(&mut self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected], t);
+                            self.reverse_state();
+                            self.input.clear();
+                            self.character_index = 0;
+                        } else {
+                            // show error
+                            self.current_screen = CurrentScreen::Error;
+                        }
                     }
                     _ => {}
                 }
@@ -595,20 +608,30 @@ impl TimingsWidget {
                     _ => {}
                 }
             },
+            CurrentScreen::Error => {
+                // use any key press to leave error screen
+                self.reverse_state()
+            },
             CurrentScreen::Exit => {
                 match key.code {
+                    KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
+                    KeyCode::Char('g') | KeyCode::Home => self.select_first(),
+                    KeyCode::Char('G') | KeyCode::End => self.select_last(),
+
                     KeyCode::Char('h') | KeyCode::Left => self.reverse_state(),
                     KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                         // add code to select the list item
                         // render popup now using current selection
                         if let Some(i) = self.exit_list.state.selected() {
-                            match self.exit_list.del_list[i].item.as_str() {
+                            match self.exit_list.exit_list_items[i].item.as_str() {
                                 "Yes" => {
                                     // compile the schedule here
                                     self.compile_schedule();                         
                                     self.should_exit = true;
                                 },
-                                _ => {}
+                                _ => self.reverse_state()
                             }
                         }
                     },
@@ -617,6 +640,19 @@ impl TimingsWidget {
 
             }
         }
+    }
+
+    fn timing_format_correct(&self) -> bool {
+        let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
+        re.is_match(&self.input)
+    }
+    fn parse_timing_from_input(&self) -> Timing {
+        let new_t = self.input.as_str()
+            .split("-")
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        let t = Timing::new(&new_t[0], &new_t[1]);
+        t
     }
     
     /*
@@ -627,6 +663,7 @@ impl TimingsWidget {
         CurrentScreen::Add => {},
         CurrentScreen::Edit => {},
         CurrentScreen::Delete => {},
+        CurrentScreen::Error => {},
         CurrentScreen::Exit => {}
     }
     */
@@ -639,9 +676,10 @@ impl TimingsWidget {
             CurrentScreen::Add => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Edit => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
+            CurrentScreen::Error => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
         }
-
+        self.previous_screen = self.current_screen.clone();
     }
 
     fn select_next(&mut self) {
@@ -649,10 +687,9 @@ impl TimingsWidget {
             CurrentScreen::Weekdays => self.list_element_entries.state.select_next(),
             CurrentScreen::Day => self.list_element_entries.list[self.weekday_selected].timings.state.select_next(),
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_next(),
-            CurrentScreen::Add => {},
-            CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_next(),
-            CurrentScreen::Exit => self.exit_list.state.select_next()
+            CurrentScreen::Exit => self.exit_list.state.select_next(),
+            _ => {}
         }
     }
     fn select_previous(&mut self) {
@@ -660,10 +697,9 @@ impl TimingsWidget {
             CurrentScreen::Weekdays => self.list_element_entries.state.select_previous(),
             CurrentScreen::Day => self.list_element_entries.list[self.weekday_selected].timings.state.select_previous(),
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_previous(),
-            CurrentScreen::Add => {},
-            CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_previous(),
-            CurrentScreen::Exit => self.exit_list.state.select_previous()
+            CurrentScreen::Exit => self.exit_list.state.select_previous(),
+            _ => {}
         }
 
     }
@@ -672,10 +708,10 @@ impl TimingsWidget {
             CurrentScreen::Weekdays => self.list_element_entries.state.select_first(),
             CurrentScreen::Day => self.list_element_entries.list[self.weekday_selected].timings.state.select_first(),
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_first(),
-            CurrentScreen::Add => {},
-            CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_first(),
-            CurrentScreen::Exit => self.exit_list.state.select_first()
+            CurrentScreen::Exit => self.exit_list.state.select_first(),
+            _ => {}
+
         }
 
     }
@@ -684,10 +720,9 @@ impl TimingsWidget {
             CurrentScreen::Weekdays => self.list_element_entries.state.select_last(),
             CurrentScreen::Day => self.list_element_entries.list[self.weekday_selected].timings.state.select_last(),
             CurrentScreen::TimingOptions => self.timing_op_list.state.select_last(),
-            CurrentScreen::Add => {},
-            CurrentScreen::Edit => {},
             CurrentScreen::Delete => self.del_op_list.state.select_last(),
-            CurrentScreen::Exit => self.exit_list.state.select_last()
+            CurrentScreen::Exit => self.exit_list.state.select_last(),
+            _ => {}
         }
     }
 
@@ -925,11 +960,25 @@ impl TimingsWidget {
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.del_op_list.state);
     }
+    fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
 
+        let input = Paragraph::new(Line::raw(&self.error_message)) 
+           .style(SELECTED_STYLE)
+           .bg(NORMAL_ROW_BG)
+           .wrap(Wrap {trim:false})
+           .block(
+               Block::bordered()
+               .style(ITEM_HEADER_STYLE)
+               .title(Line::raw("ERROR").centered())
+           )
+           .render(area, buf);
+
+    }
     fn render_exit(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
         let block = Block::new()
-            .title(Line::raw("Are you finished?").centered())
+            .title(Line::raw("Ready to exit the schedule?").centered())
             .borders(Borders::ALL)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
@@ -937,8 +986,8 @@ impl TimingsWidget {
 
         // Iterate through all the timings in the weekday selected and stylise them
         let items: Vec<ListItem> = self 
-            .del_op_list
-            .del_list
+            .exit_list
+            .exit_list_items
             .iter()
             .enumerate()
             .map(|(i, option)| {
@@ -1168,6 +1217,35 @@ impl Widget for &mut TimingsWidget {
 
                 self.render_delete(popup_area, buf);
             },
+            CurrentScreen::Error => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                let [weekdays_area, day_area] = Layout::horizontal([
+                    Constraint::Fill(1),
+                    Constraint::Fill(1)
+                ])
+                .areas(list_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+                self.render_weekdays_list(weekdays_area, buf);
+                self.render_day_list(day_area, buf);
+                self.render_selected_item(item_area, buf);
+
+                self.render_error(popup_area, buf);
+            },
+
             CurrentScreen::Exit => {
                 let [header_area, main_area, footer_area] = Layout::vertical([
                     Constraint::Length(2),
@@ -1188,7 +1266,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_selected_item(item_area, buf);
 
 
-                self.render_delete(popup_area, buf);
+                self.render_exit(popup_area, buf);
 
             },
         }

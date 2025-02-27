@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs,
     io,
     io::Write,
@@ -10,6 +11,7 @@ use std::{
         Command
     }
 };
+use regex::Regex;
 use std::error::Error;
 use ratatui::{
     prelude::CrosstermBackend,
@@ -42,6 +44,7 @@ use crate::reboot::RebootWidget;
 mod mount;
 
 mod styles;
+mod areas;
 
 mod timings;
 
@@ -78,7 +81,7 @@ pub enum Reboot {
 type Schedule = Vec<(String, String)>;
 type Timings = Vec<Weekday>;
 
-#[derive(Display, Debug)]
+#[derive(Display, Debug, Clone)]
 pub enum Weekday {
     Monday(Schedule),
     Tuesday(Schedule),
@@ -138,7 +141,51 @@ fn default_timings() -> Timings {
     ]
 }
 
+fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
+    let string_vec: Vec<String> = value.as_str().split(",").map(|x| x.trim().to_string()).collect(); 
+    if &value != "" {
+        let string_vec_test = string_vec.clone();
 
+        // check the schedule format matches 00:00 or 00:00:00
+        // move these check to the "to weekday" function
+        let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
+        // check the times split correctly
+        let parsed_count = string_vec_test.len();  
+        let string_of_times = string_vec_test.iter().map(|s| s.to_string()).collect::<String>();
+        let mut re_count = 0;
+        for time in string_vec_test.iter() {
+            if re.is_match(&time) == true {
+                re_count += 1;
+            }
+        }
+        if parsed_count != re_count {
+            // timings do not match
+            eprintln!("Schedule incorrectly formatted!");
+        }
+    }
+
+    let mut day_schedule = Vec::new();
+    for time in string_vec.iter() {
+        let start_end = time.as_str()
+            .split("-")
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        let start = start_end[0].clone();
+        let end = start_end[1].clone();
+        day_schedule.push((start, end));
+    }
+    match day {
+       Weekday::Monday(_) =>  Ok(Weekday::Monday(day_schedule)),
+       Weekday::Tuesday(_) => Ok(Weekday::Tuesday(day_schedule)),
+       Weekday::Wednesday(_) => Ok(Weekday::Wednesday(day_schedule)),
+       Weekday::Thursday(_) => Ok(Weekday::Thursday(day_schedule)),
+       Weekday::Friday(_) => Ok(Weekday::Friday(day_schedule)),
+       Weekday::Saturday(_) => Ok(Weekday::Saturday(day_schedule)),
+       Weekday::Sunday(_) => Ok(Weekday::Sunday(day_schedule))
+    }
+
+
+}
 /// This program runs one task at custom intervals. The task can also be looped.
 /// Commonly this is used for playing media files at certain times.
 /// The Task struct is the main set of instructions that are written out into an env file to be 
@@ -223,7 +270,6 @@ fn write_task(task: Task) -> Result<(), IoError> {
                    Weekday::Friday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
                    Weekday::Saturday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
                    Weekday::Sunday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   _ => {}
               }
            }
        }
@@ -271,10 +317,68 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     */
-    
-    // temporarily remove mounting capabilities
-    //let _usb_drive_mount = find_mount_drives()?;
+    // Find and load any existing config for the user
+    // This is hard coded, as the user will always be named "fun"
+    let username = whoami::username();
+    let env_dir_path: PathBuf =["/home/", &username, "medialoop_config/vars"].iter().collect();
 
+    
+
+
+    // set up the config vars
+    let mut file = PathBuf::new();
+    let mut proc_type = ProcType::Media;
+    let mut auto_loop = Autoloop::No;
+    let mut schedule = AdvancedSchedule::No;
+    let mut timings: Timings = Vec::with_capacity(7);
+    let mut monday: Weekday = Weekday::Monday(Vec::with_capacity(2));
+    let mut tuesday: Weekday = Weekday::Tuesday(Vec::with_capacity(2));
+    let mut wednesday: Weekday = Weekday::Wednesday(Vec::with_capacity(2));
+    let mut thursday: Weekday = Weekday::Thursday(Vec::with_capacity(2));
+    let mut friday: Weekday = Weekday::Friday(Vec::with_capacity(2));
+    let mut saturday: Weekday = Weekday::Saturday(Vec::with_capacity(2));
+    let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
+    
+    if env_dir_path.exists() {
+        if let Err(e) = dotenvy::from_path_override(env_dir_path.as_path()) {
+            eprintln!("Cannot find env vars at path: {}", env_dir_path.display());
+        }
+        // parse the environmental vars
+        for (key, value) in env::vars() {
+            match key.as_str() {
+                // proctype should always be stored and checked lowercase
+                "ML_PROCTYPE" => proc_type = match value.to_lowercase().as_str() {
+                    "media" => ProcType::Media,
+                    "browser" => ProcType::Browser,
+                    "executable" => ProcType::Executable,
+                    &_ => ProcType::Media
+                },
+                "ML_AUTOLOOP" => auto_loop = match value.as_str() {
+                    "true" => Autoloop::Yes,
+                    "false" => Autoloop::No,
+                    &_ => Autoloop::No
+                },
+                "ML_FILE" => file.push(value.as_str()),
+                "ML_SCHEDULE" => schedule = match value.as_str() {
+                    "true" => AdvancedSchedule::Yes,
+                    "false" => AdvancedSchedule::No,
+                    &_ => AdvancedSchedule::No
+                },
+                "ML_MONDAY" => monday = to_weekday(value, Weekday::Monday(Vec::new()))?,
+                "ML_TUESDAY" => tuesday = to_weekday(value, Weekday::Tuesday(Vec::new()))?,
+                "ML_WEDNESDAY" => wednesday = to_weekday(value, Weekday::Wednesday(Vec::new()))?,
+                "ML_THURSDAY" => thursday = to_weekday(value, Weekday::Thursday(Vec::new()))?,
+                "ML_FRIDAY" => friday = to_weekday(value, Weekday::Friday(Vec::new()))?,
+                "ML_SATURDAY" => saturday = to_weekday(value, Weekday::Saturday(Vec::new()))?,
+                "ML_SUNDAY" => sunday = to_weekday(value, Weekday::Sunday(Vec::new()))?,
+                _ => {}
+            }
+        }
+
+        timings = vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday]; 
+    }
+
+    let timings_clone = timings.clone();
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -284,7 +388,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let _landing = LandingWidget::default().run(&mut terminal)?;
     // returns Ok(ProcType) e.g. Ok(ProcType::Media)
-    let proctype = ProcTypeWidget::default().run(&mut terminal)?;
+    let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
 
     // return Ok(FileSelectType)
     let file_path = FileSelectWidget::default().run(&mut terminal)?;

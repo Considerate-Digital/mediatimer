@@ -43,7 +43,8 @@ impl FromIterator<(Autoloop, &'static str)> for AutoloopList {
             .into_iter()
             .map(|(list_element, info)| AutoloopEntry::new(list_element, info))
             .collect();
-        let state = ListState::default();
+        let mut state = ListState::default();
+        state.select_first();
         Self { list, state }
     }
 }

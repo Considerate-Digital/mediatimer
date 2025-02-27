@@ -141,7 +141,7 @@ impl FileSelectWidget {
 
     fn setup_file_explorer(&mut self) {
         let mounted_drives = identify_mounted_drives();
-        println!("{:?}", mounted_drives);
+        //println!("{:?}", mounted_drives);
         let username = whoami::username();
         if mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
