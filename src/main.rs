@@ -59,7 +59,7 @@ pub enum ProcType {
     Executable,
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, PartialEq)]
 pub enum Autoloop {
     Yes,
     No
@@ -170,9 +170,11 @@ fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
             .split("-")
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
-        let start = start_end[0].clone();
-        let end = start_end[1].clone();
-        day_schedule.push((start, end));
+        if start_end.len() == 2 {
+            let start = start_end[0].clone();
+            let end = start_end[1].clone();
+            day_schedule.push((start, end));
+        }
     }
     match day {
        Weekday::Monday(_) =>  Ok(Weekday::Monday(day_schedule)),
@@ -391,12 +393,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
 
     // return Ok(FileSelectType)
-    let file_path = FileSelectWidget::default().run(&mut terminal)?;
+    let file_path = FileSelectWidget::new(file).run(&mut terminal)?;
     
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
     let mut autoloop = Autoloop::No;
     if proctype == ProcType::Media {
-        autoloop = AutoloopWidget::default().run(&mut terminal)?;
+        autoloop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
 
     let advanced_schedule = AdvancedScheduleWidget::default().run(&mut terminal)?;

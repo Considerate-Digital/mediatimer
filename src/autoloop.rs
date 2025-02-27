@@ -77,14 +77,28 @@ impl Default for AutoloopWidget {
             list_element_entries: AutoloopList::from_iter([
                 (Autoloop::Yes, "Auto loop this media file."),
                 (Autoloop::No, "Do not auto loop this media file.")
-
             ]),
         }
     }
 }
 
 impl AutoloopWidget {
+    pub fn new(autoloop_preset: Autoloop) -> Self {
+        Self {
+            should_exit: false,
+            selected_type: autoloop_preset,
+            list_element_entries: AutoloopList::from_iter([
+                (Autoloop::Yes, "Auto loop this media file."),
+                (Autoloop::No, "Do not auto loop this media file.")
+            ]),
+
+        }
+    }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
+        // set the preset
+        let index = self.list_element_entries.list.iter().position(|i| i.list_element == self.selected_type).unwrap();
+        self.list_element_entries.state.select(Some(index));
+
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

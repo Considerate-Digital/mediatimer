@@ -96,6 +96,12 @@ impl ProcTypeWidget {
         }
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
+        // set default value
+        // get the index of the selected item
+        let index = self.proc_type_entries.list.iter().position(|i| i.proc_type == self.selected_type).unwrap();
+        // set the state
+        self.proc_type_entries.state.select(Some(index));
+
         while !self.should_exit {
             let _ = &terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

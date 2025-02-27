@@ -19,6 +19,7 @@ use std::{
     PathBuf,
     Path
     },
+    fs::File
 };
 
 use ratatui_explorer::{FileExplorer, Theme};
@@ -53,15 +54,13 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    /*
-    pub fn new() -> Self {
+    pub fn new(file_path: PathBuf) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
-            selected_file: Path::new("./").to_path_buf(),
+            selected_file: file_path,
         }
     }
-    */
 
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
         self.setup_file_explorer();
@@ -141,9 +140,23 @@ impl FileSelectWidget {
 
     fn setup_file_explorer(&mut self) {
         let mounted_drives = identify_mounted_drives();
-        //println!("{:?}", mounted_drives);
         let username = whoami::username();
-        if mounted_drives.len() > 1 && !username.is_empty() {
+
+        if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
+            if let Some(parent_dir) = self.selected_file.parent() {
+                self.file_explorer.set_cwd(&parent_dir).unwrap();
+                // then highlight the selected file
+                // TODO proper error handling
+                let file_os_str = self.selected_file.file_name().unwrap();
+                let file_name = file_os_str.to_str().unwrap(); 
+                let files = self.file_explorer.files();
+                let index = files.iter().position(|f| f.name() == file_name).unwrap();
+                self.file_explorer.set_selected_idx(index);
+            } else {
+                // TODO provide better directory option
+                self.file_explorer.set_cwd("/home/").unwrap();
+            }
+        } else if mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
         } else if mounted_drives.len() == 1 {
@@ -159,7 +172,6 @@ impl FileSelectWidget {
     
     fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
         self.file_explorer.widget().render(area, buf);
-
     }
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
