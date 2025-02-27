@@ -84,7 +84,21 @@ impl Default for AdvancedScheduleWidget {
 }
 
 impl AdvancedScheduleWidget {
+    pub fn new(preset_schedule: AdvancedSchedule) -> Self {
+        Self {
+            should_exit: false,
+            selected_type: preset_schedule,
+            list_element_entries: AdvancedScheduleList::from_iter([
+                (AdvancedSchedule::Yes, "Set up an advanced schedule."),
+                (AdvancedSchedule::No, "Do not use an advanced schedule.")
+
+            ]),
+        }
+
+    }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<AdvancedSchedule, Box< dyn Error>> {
+        let index = self.list_element_entries.list.iter().position(|i| i.list_element == self.selected_type).unwrap();
+        self.list_element_entries.state.select(Some(index));
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {

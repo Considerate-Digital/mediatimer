@@ -131,7 +131,7 @@ impl Widget for &mut LandingWidget {
         .areas(main_area);
         LandingWidget::render_header(header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
-        LandingWidget::render_text(popup_area(area), buf);
+        LandingWidget::render_text(area, buf);
     }
 }
 

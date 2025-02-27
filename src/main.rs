@@ -401,12 +401,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         autoloop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
 
-    let advanced_schedule = AdvancedScheduleWidget::default().run(&mut terminal)?;
+    let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
-    let mut timings = default_timings();
+    //let mut timings = default_timings();
     if advanced_schedule == AdvancedSchedule::Yes {
         //returns Ok(Timings)
-        timings = TimingsWidget::default().run(&mut terminal)?;
+        timings = TimingsWidget::new(timings).run(&mut terminal)?;
     }
 
     let task = Task::new(proctype, autoloop, advanced_schedule, timings, file_path);

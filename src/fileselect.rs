@@ -180,7 +180,8 @@ impl FileSelectWidget {
             Line::from("Select a media file to loop using our file explorer."),
             Line::from("Use the keyboard arrows and the 'Enter' key to find the file you want to loop."),
             Line::from("Press the 'Enter' key to select the file."),
-            Line::from("You can exit the file explorer at any time by pressing 'ESC' or 'q'."),
+            Line::from("To ascend a directory navigate to \"../\" and press Enter"),
+            Line::from("USB sticks will show up automatically but if you need to navigate to them manually you will find them in the directory called \"media\"."),
 
         ];
 

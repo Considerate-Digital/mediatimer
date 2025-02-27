@@ -82,6 +82,19 @@ impl Weekday {
     }
 }
 
+fn common_to_local_weekday(wd: CommonWeekday) -> Weekday {
+    match wd {
+        CommonWeekday::Monday(schedule) => Weekday::Monday(TimingCollection::from_common_schedule(schedule)), 
+        CommonWeekday::Tuesday(schedule) => Weekday::Tuesday(TimingCollection::from_common_schedule(schedule)),
+        CommonWeekday::Wednesday(schedule) => Weekday::Wednesday(TimingCollection::from_common_schedule(schedule)),
+        CommonWeekday::Thursday(schedule) => Weekday::Thursday(TimingCollection::from_common_schedule(schedule)),
+        CommonWeekday::Friday(schedule) => Weekday::Friday(TimingCollection::from_common_schedule(schedule)),
+        CommonWeekday::Saturday(schedule) => Weekday::Saturday(TimingCollection::from_common_schedule(schedule)), 
+        CommonWeekday::Sunday(schedule) => Weekday::Sunday(TimingCollection::from_common_schedule(schedule)),
+    }
+
+}
+
 #[derive(Debug, Default, Setters)]
 struct Popup<'a> {
     #[setters(into)]
@@ -164,6 +177,19 @@ impl TimingCollection {
 
         TimingCollection {
             timing_collection: vec![Timing::default()],
+            state
+        }
+    }
+    fn from_common_schedule(schedule: CommonSchedule) -> TimingCollection {
+        let mut state = ListState::default();
+        state.select_first();
+        let mut timing_collection = Vec::with_capacity(1);
+        for t in schedule.iter() {
+            let timing = Timing::new(&t.0, &t.1);
+            timing_collection.push(timing);
+        }
+        TimingCollection {
+            timing_collection,
             state
         }
     }
@@ -316,6 +342,16 @@ struct TimingsList {
     list: Vec<TimingsEntry>,
     state: ListState
 }
+impl Default for TimingsList {
+    fn default() -> Self {
+        let mut state = ListState::default();
+        state.select_first();
+        Self {
+            list: Vec::with_capacity(1),
+            state
+        }
+    }
+}
 
 impl FromIterator<(Weekday, &'static str)> for TimingsList {
     fn from_iter<I: IntoIterator<Item = (Weekday, &'static str)>>(iter: I) -> Self {
@@ -383,8 +419,58 @@ impl Default for TimingsWidget {
     }
 }
 
+fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
+    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+    //type Timings = Vec<Weekday>;
+    if c_timings.len() == 7 {
+        let mut t_list = TimingsList::default();
+        for day in c_timings.iter() {
+            let day = common_to_local_weekday(day.clone());
+            let t_entry = TimingsEntry::new(day, info_text);
+            t_list.list.push(t_entry); 
+        }
+        t_list
+
+    } else {
+        TimingsList::from_iter([
+            (Weekday::Monday(TimingCollection::default()), info_text),
+            (Weekday::Tuesday(TimingCollection::default()), info_text),
+            (Weekday::Wednesday(TimingCollection::default()), info_text),
+            (Weekday::Thursday(TimingCollection::default()), info_text),
+            (Weekday::Friday(TimingCollection::default()), info_text),
+            (Weekday::Saturday(TimingCollection::default()), info_text),
+            (Weekday::Sunday(TimingCollection::default()), info_text),
+        ])
+    }
+}
+
 impl TimingsWidget {
+    pub fn new (preset_timings: CommonTimings) -> Self {
+
+        // convert the common-timings to timings
+        let parsed_timings: TimingsList = parse_common_timings(preset_timings);
+
+
+        Self {
+            should_exit: false,
+            current_screen: CurrentScreen::Weekdays,
+            previous_screen: CurrentScreen::Weekdays,
+            weekday_selected: 0,
+            timing_selected: 0,
+            operation_selected: TimingOp::Add,
+            timing_op_list: TimingOpList::default(),
+            input: String::new(),
+            character_index: 0,
+            input_area: Rect::new(0,0,0,0),
+            del_op_list: DelOpList::default(),
+            exit_list: ExitList::default(),
+            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00"),
+            list_element_entries: parsed_timings,
+            schedule: Vec::with_capacity(7)
+        }
+    }
     pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
+
         while !self.should_exit {
             terminal.draw(|f| {
                 f.render_widget(&mut self, f.area());
@@ -442,7 +528,7 @@ impl TimingsWidget {
         match self.current_screen {
             CurrentScreen::Weekdays => {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
+                    KeyCode::Char('q') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
                     //KeyCode::Char('h') | KeyCode::Left => self.select_none(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -1009,15 +1095,25 @@ impl TimingsWidget {
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
+        /*
         let info = if let Some(i) = self.list_element_entries.state.selected() {
             self.list_element_entries.list[i].info.clone()
         } else {
             "Nothing selected...".to_string()
         };
+        */
+        let info = vec![ 
+            Line::from("Enter the start and end timings for each schedule entry."),
+            Line::from("Use ENTER or the right keyboard arrow to advance through the menu."),
+            Line::from("Add, Edit or Delete schedule timings."),
+            Line::from("Use ESC or the left keyboard arrow to retreat through the menu."),
+            Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00."),
+            Line::from("Example: 12:20-13:15"),
+        ];
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("TYPE INFO").centered())
+            .title(Line::raw("SCHEDULE INFO").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
