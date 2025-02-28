@@ -22,6 +22,7 @@ use crate::styles::{
     ALT_ROW_BG_COLOR,
     SELECTED_STYLE,
     TEXT_FG_COLOR,
+    FOOTER_STYLE
 };
 
 use crate::Autoloop;
@@ -164,6 +165,7 @@ impl AutoloopWidget {
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+            .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
     }
@@ -243,7 +245,7 @@ impl Widget for &mut AutoloopWidget {
         .areas(area);
 
         let [list_area, item_area] = Layout::vertical([
-            Constraint::Fill(3),
+            Constraint::Fill(2),
             Constraint::Fill(1)
         ])
         .areas(main_area);

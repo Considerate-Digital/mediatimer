@@ -29,7 +29,8 @@ use crate::styles::{
     NORMAL_ROW_BG,
     SELECTED_STYLE,
     TEXT_FG_COLOR,
-    TEXT_DIR_COLOR
+    TEXT_DIR_COLOR,
+    FOOTER_STYLE
 };
 
 use crate::mount::identify_mounted_drives;
@@ -113,6 +114,7 @@ impl FileSelectWidget {
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+            .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
     }
@@ -178,16 +180,16 @@ impl FileSelectWidget {
         // get the info
         let text = vec![ 
             Line::from("Select a media file to loop using our file explorer."),
-            Line::from("Use the keyboard arrows and the 'Enter' key to find the file you want to loop."),
-            Line::from("Press the 'Enter' key to select the file."),
-            Line::from("To ascend a directory navigate to \"../\" and press Enter"),
-            Line::from("USB sticks will show up automatically but if you need to navigate to them manually you will find them in the directory called \"media\"."),
+            Line::from("Use the arrow keys ⇅ and the ENTER key to find the file you want to loop."),
+            Line::from("Press ENTER to select the file."),
+            Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
+            Line::from("USB sticks will show up automatically but if you need to navigate to them manually you will find them in the directory called 'media'."),
 
         ];
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("TYPE INFO").centered())
+            .title(Line::raw("FILE INFO").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

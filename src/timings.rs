@@ -30,6 +30,7 @@ use crate::styles::{
     ALT_ROW_BG_COLOR,
     SELECTED_STYLE,
     TEXT_FG_COLOR,
+    FOOTER_STYLE
 };
 
 // This is declared twice due to the TUI list structure requirements and must be converted 
@@ -390,7 +391,7 @@ impl TimingsEntry {
 
 impl Default for TimingsWidget {
     fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
         Self {
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
@@ -873,6 +874,7 @@ impl TimingsWidget {
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.")
+            .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
     }
@@ -1160,7 +1162,7 @@ impl Widget for &mut TimingsWidget {
                 .areas(area);
 
                 let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
+                    Constraint::Fill(2),
                     Constraint::Fill(1)
                 ])
                 .areas(main_area);

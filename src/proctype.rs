@@ -22,6 +22,7 @@ use crate::styles::{
     ALT_ROW_BG_COLOR,
     SELECTED_STYLE,
     TEXT_FG_COLOR,
+    FOOTER_STYLE
 };
 
 pub struct ProcTypeWidget {
@@ -73,7 +74,7 @@ impl Default for ProcTypeWidget {
             should_exit: false,
             selected_type: ProcType::Media,
             proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Most video and audio formats are accepted."),
+                (ProcType::Media, "A media file. Example files: mp3, wav, mp4, avi, flac etc. Most video and audio formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable."),
 
@@ -88,7 +89,7 @@ impl ProcTypeWidget {
             should_exit: false,
             selected_type: preset_type,
             proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Most video and audio formats are accepted."),
+                (ProcType::Media, "A media file. Example files: mp3, wav, mp4, avi, flac etc. Most video and audio formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable."),
 
@@ -168,6 +169,7 @@ impl ProcTypeWidget {
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+            .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
     }
@@ -247,7 +249,7 @@ impl Widget for &mut ProcTypeWidget {
         .areas(area);
 
         let [list_area, item_area] = Layout::vertical([
-            Constraint::Fill(3),
+            Constraint::Fill(2),
             Constraint::Fill(1)
         ])
         .areas(main_area);

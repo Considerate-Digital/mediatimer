@@ -330,7 +330,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // set up the config vars
     let mut file = PathBuf::new();
     let mut proc_type = ProcType::Media;
-    let mut auto_loop = Autoloop::No;
+    let mut auto_loop = Autoloop::Yes;
     let mut schedule = AdvancedSchedule::No;
     let mut timings: Timings = Vec::with_capacity(7);
     let mut monday: Weekday = Weekday::Monday(Vec::with_capacity(2));
@@ -395,21 +395,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     // return Ok(FileSelectType)
     let file_path = FileSelectWidget::new(file).run(&mut terminal)?;
     
-    // return Ok(Autoloop) e.g. Ok(Autoloop::No)
-    let mut autoloop = Autoloop::No;
-    if proctype == ProcType::Media {
-        autoloop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
-    }
-
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
-    //let mut timings = default_timings();
     if advanced_schedule == AdvancedSchedule::Yes {
         //returns Ok(Timings)
         timings = TimingsWidget::new(timings).run(&mut terminal)?;
     }
-
-    let task = Task::new(proctype, autoloop, advanced_schedule, timings, file_path);
+    
+    // return Ok(Autoloop) e.g. Ok(Autoloop::No)
+    if proctype == ProcType::Media && advanced_schedule == AdvancedSchedule::Yes {
+        auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
+    }
+    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file_path);
 
     // write a function that writes the task to a specific env file
     // write_task 
