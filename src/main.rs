@@ -251,10 +251,6 @@ fn write_task(task: Task) -> Result<(), IoError> {
             AdvancedSchedule::No => "false"
        });
 
-       // TODO write timings
-       // create print each day as one env var and separate timings using " ".
-       // format is START-STOP e.g. 0900-1500
-       //
        // This function should be converted to a closure
        fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
            let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();

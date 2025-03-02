@@ -148,14 +148,15 @@ impl FileSelectWidget {
             if let Some(parent_dir) = self.selected_file.parent() {
                 self.file_explorer.set_cwd(&parent_dir).unwrap();
                 // then highlight the selected file
-                // TODO proper error handling
-                let file_os_str = self.selected_file.file_name().unwrap();
-                let file_name = file_os_str.to_str().unwrap(); 
-                let files = self.file_explorer.files();
-                let index = files.iter().position(|f| f.name() == file_name).unwrap();
-                self.file_explorer.set_selected_idx(index);
+                if let Some(file_os_str) = self.selected_file.file_name() { 
+                    if let Some(file_name) = file_os_str.to_str() {
+                        let files = self.file_explorer.files();
+                        if let Some(index) = files.iter().position(|f| f.name() == file_name) {
+                            self.file_explorer.set_selected_idx(index);
+                        }
+                    }
+                }
             } else {
-                // TODO provide better directory option
                 self.file_explorer.set_cwd("/home/").unwrap();
             }
         } else if mounted_drives.len() > 1 && !username.is_empty() {

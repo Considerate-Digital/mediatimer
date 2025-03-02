@@ -391,7 +391,7 @@ impl TimingsEntry {
 
 impl Default for TimingsWidget {
     fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000";
         Self {
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
@@ -421,7 +421,7 @@ impl Default for TimingsWidget {
 }
 
 fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
-    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000";
     //type Timings = Vec<Weekday>;
     if c_timings.len() == 7 {
         let mut t_list = TimingsList::default();
@@ -465,7 +465,7 @@ impl TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
-            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00"),
+            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000"),
             list_element_entries: parsed_timings,
             schedule: Vec::with_capacity(7)
         }
@@ -623,16 +623,6 @@ impl TimingsWidget {
                     KeyCode::Backspace => self.delete_char(),
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
-                        // add the new timing!
-                        //let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
-                        // parse the timing
-                        /*
-                        let new_t = self.input.as_str()
-                            .split("-")
-                            .map(|x| x.to_string())
-                            .collect::<Vec<String>>();
-                        let t = Timing::new(&new_t[0], &new_t[1]);
-                        */
                         if self.timing_format_correct() {
                             let t = self.parse_timing_from_input();
                             self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
@@ -730,8 +720,35 @@ impl TimingsWidget {
     }
 
     fn timing_format_correct(&self) -> bool {
-        let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
-        re.is_match(&self.input)
+        //let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
+        let re = Regex::new(r"(
+                ^(?<h>[0-2][0-9]):[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]$|
+                ^(?<h3>[0-2][0-9]):[0-5][0-9]:[0-9][0-9][0-9]-[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]$|
+                ^[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]$|
+                ^[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]-[0-2][0-9]:[0-5][0-9]$
+                )").unwrap();
+        let re_matches = re.is_match(&self.input);
+        if re_matches { 
+            let times: Vec<(u32, u32)> = re.captures_iter(&self.input).map(|times| {
+                let hour_1 = times.name("h").unwrap().as_str();
+                let hour_1 = hour_1.parse::<u32>().unwrap();
+                let hour_2 = times.name("h2").unwrap().as_str();
+                let hour_2 = hour_2.parse::<u32>().unwrap();
+                (hour_1, hour_2)
+            }).collect();
+            for time_pair in times.iter() {
+                if time_pair.0 < 24 && 
+                    time_pair.1 < 24 {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            false
+        } else {
+            false
+        }
+
     }
     fn parse_timing_from_input(&self) -> Timing {
         let new_t = self.input.as_str()
@@ -1109,7 +1126,7 @@ impl TimingsWidget {
             Line::from("Use ENTER or the right keyboard arrow to advance through the menu."),
             Line::from("Add, Edit or Delete schedule timings."),
             Line::from("Use ESC or the left keyboard arrow to retreat through the menu."),
-            Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00."),
+            Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000"),
             Line::from("Example: 12:20-13:15"),
         ];
 
