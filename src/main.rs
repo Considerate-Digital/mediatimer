@@ -301,20 +301,10 @@ fn write_task(task: Task) -> Result<(), IoError> {
 /// by non-technical users.
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // useful for getting current settings
-    // use this dir .env for testing
-    /*
-    dotenvy::from_path(Path::new("/home/alex/medialoop/src/.env"))?;
+    // TODO
+    // issue command to pause medialoop_init
+    // systemctl --user stop medialoop_init.service
 
-    for (key, value) in env::vars() {
-        match key.as_str() {
-            "ML_WEEKDAYS" => println!("{}", value),
-            "ML_START" => println!("{}", value),
-            "ML_END" => println!("{}", value),
-            _ => {}
-        }
-    }
-    */
     // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
@@ -421,7 +411,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-
+    // TODO
+    // issue command to restart medialoop_init service
+    // systemctl --user start medialoop_init.service
     // if reboot selected then reboot
         match reboot {
             Reboot::Yes => {
