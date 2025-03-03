@@ -422,8 +422,17 @@ impl Default for TimingsWidget {
 
 fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
     let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000";
+
+    let days_with_timings_collection: Vec<_> = c_timings.iter()
+        .map(|ct| common_to_local_weekday(ct.clone()))
+        .map(|schedule| schedule.timings())
+        .filter(|t| t.timing_collection.len() > 0)
+        .collect();
+    let days_without_timings_count = 7 - days_with_timings_collection.len(); 
+
+
     //type Timings = Vec<Weekday>;
-    if c_timings.len() == 7 {
+    if c_timings.len() == 7 && days_without_timings_count != 7 {
         let mut t_list = TimingsList::default();
         for day in c_timings.iter() {
             let day = common_to_local_weekday(day.clone());
@@ -720,13 +729,7 @@ impl TimingsWidget {
     }
 
     fn timing_format_correct(&self) -> bool {
-        //let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
-        let re = Regex::new(r"(
-                ^(?<h>[0-2][0-9]):[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]$|
-                ^(?<h3>[0-2][0-9]):[0-5][0-9]:[0-9][0-9][0-9]-[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]$|
-                ^[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]$|
-                ^[0-2][0-9]:[0-5][0-9]:[0-9][0-9][0-9]-[0-2][0-9]:[0-5][0-9]$
-                )").unwrap();
+        let re = Regex::new(r"^(?<h>[0-2][0-9]):[0-5][0-9](:[0-9][0-9][0-9])?-(?<h2>[0-2][0-9]):[0-5][0-9](:[0-9][0-9][0-9])?$").unwrap();
         let re_matches = re.is_match(&self.input);
         if re_matches { 
             let times: Vec<(u32, u32)> = re.captures_iter(&self.input).map(|times| {

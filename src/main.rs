@@ -218,7 +218,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
    if let Some(dir) = home::home_dir() {
         // check if dir exists
         let mut dir_path = PathBuf::from(dir);
-        dir_path.push("medialoop_config");
+        dir_path.push(".medialoop_config");
 
         // check if the medialoop directory exists in home
         if dir_path.as_path().is_dir() == false {
@@ -318,7 +318,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
-    let env_dir_path: PathBuf =["/home/", &username, "medialoop_config/vars"].iter().collect();
+    let env_dir_path: PathBuf =["/home/", &username, ".medialoop_config/vars"].iter().collect();
 
     
 
