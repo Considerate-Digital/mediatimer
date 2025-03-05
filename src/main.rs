@@ -301,9 +301,15 @@ fn write_task(task: Task) -> Result<(), IoError> {
 /// by non-technical users.
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // TODO
+
     // issue command to pause medialoop_init
     // systemctl --user stop medialoop_init.service
+    let _stop_medialoop_init = Command::new("systemctl")
+        .arg("--user")
+        .arg("stop")
+        .arg("medialoop_init.service")
+        .expect("Medialoop not restarted");
+
 
     // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
@@ -411,9 +417,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-    // TODO
+
     // issue command to restart medialoop_init service
-    // systemctl --user start medialoop_init.service
+    let _enable_medialoop_init = Command::new("systemctl")
+        .arg("--user")
+        .arg("start")
+        .arg("medialoop_init.service")
+        .expect("Medialoop not restarted");
+
     // if reboot selected then reboot
         match reboot {
             Reboot::Yes => {
