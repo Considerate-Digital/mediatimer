@@ -16,3 +16,5 @@ This software was originally designed for FunOS (Ubuntu-based). FunOS (Ubuntu-ba
 
 It is possible to run this software on other linux distributions, but be aware that it was not designed to work on devices other than those provided by Considerate Digital and is not tested in other environments.
 
+## Future Plans
+- Add automatic addition of systemd service for medialoop_init if none exists
