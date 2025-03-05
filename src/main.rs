@@ -308,6 +308,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("--user")
         .arg("stop")
         .arg("medialoop_init.service")
+        .output()
         .expect("Medialoop not restarted");
 
 
@@ -423,6 +424,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("--user")
         .arg("start")
         .arg("medialoop_init.service")
+        .output()
         .expect("Medialoop not restarted");
 
     // if reboot selected then reboot
