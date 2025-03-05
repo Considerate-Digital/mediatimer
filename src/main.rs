@@ -38,6 +38,9 @@ use crate::advanced_schedule::AdvancedScheduleWidget;
 mod landing;
 use crate::landing::LandingWidget;
 
+mod loading;
+use crate::loading::LoadingWidget;
+
 mod reboot;
 use crate::reboot::RebootWidget;
 
@@ -406,10 +409,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(e) = write_task(task) {
         eprintln!("Error writing tasks to env file: {}", e);
     }
-
+    
+    
+    // issue command to restart medialoop_init service
+    /*
+    let enable_medialoop_init = Command::new("systemctl")
+        .arg("--user")
+        .arg("start")
+        .arg("medialoop_init.service")
+        .output()
+        .expect("Medialoop not restarted");
+    */
+    let _loading = LoadingWidget::default().run(&mut terminal)?;
+    
 
     // return Ok(Reboot) e.g. Ok(Reboot::No)
-    let reboot = RebootWidget::default().run(&mut terminal)?;
+    //let reboot = RebootWidget::default().run(&mut terminal)?;
 
     disable_raw_mode()?;
     execute!(
@@ -419,15 +434,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    // issue command to restart medialoop_init service
-    let _enable_medialoop_init = Command::new("systemctl")
-        .arg("--user")
-        .arg("start")
-        .arg("medialoop_init.service")
-        .output()
-        .expect("Medialoop not restarted");
 
     // if reboot selected then reboot
+    /*
         match reboot {
             Reboot::Yes => {
                 let _reboot = Command::new("reboot")
@@ -436,6 +445,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Reboot::No => {}
         }
+    */
 
     Ok(())
 }
