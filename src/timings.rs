@@ -143,7 +143,7 @@ struct Timing {
 impl Timing {
     fn default() -> Timing {
         Timing {
-            timing: (String::from("09:00"), String::from("17:00"))
+            timing: (String::from("09:00:00"), String::from("17:00:00"))
         }
     }
     fn new(start: &str, end: &str) -> Timing {
@@ -391,7 +391,7 @@ impl TimingsEntry {
 
 impl Default for TimingsWidget {
     fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
         Self {
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
@@ -405,7 +405,7 @@ impl Default for TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
-            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00"),
+            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
             list_element_entries: TimingsList::from_iter([
                 (Weekday::Monday(TimingCollection::default()), info_text),
                 (Weekday::Tuesday(TimingCollection::default()), info_text),
@@ -421,7 +421,7 @@ impl Default for TimingsWidget {
 }
 
 fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
-    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00";
+    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
 
     let days_with_timings_collection: Vec<_> = c_timings.iter()
         .map(|ct| common_to_local_weekday(ct.clone()))
@@ -474,7 +474,7 @@ impl TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
-            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:00-00:00:00"),
+            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
             list_element_entries: parsed_timings,
             schedule: Vec::with_capacity(7)
         }
@@ -1129,8 +1129,8 @@ impl TimingsWidget {
             Line::from("Use ENTER or the right keyboard arrow to advance through the menu."),
             Line::from("Add, Edit or Delete schedule timings."),
             Line::from("Use ESC or the left keyboard arrow to retreat through the menu."),
-            Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00-00:00 or 00:00:000-00:00:000"),
-            Line::from("Example: 12:20-13:15"),
+            Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
+            Line::from("Example: 12:20:00-13:15:00"),
         ];
 
         // show the list item's info under the list
