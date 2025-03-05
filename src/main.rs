@@ -221,18 +221,18 @@ fn write_task(task: Task) -> Result<(), IoError> {
    if let Some(dir) = home::home_dir() {
         // check if dir exists
         let mut dir_path = PathBuf::from(dir);
-        dir_path.push(".medialoop_config");
+        dir_path.push(".mediatimer_config");
 
-        // check if the medialoop directory exists in home
+        // check if the mediatimer directory exists in home
         if dir_path.as_path().is_dir() == false {
-            // create the medialoop directory if it does not exist
+            // create the mediatimer directory if it does not exist
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
                eprintln!("Directory could not be created: {}", er);
-               IoError::other("Could not create medialoop directory.");
+               IoError::other("Could not create mediatimer directory.");
             }
         }
 
-        // write task to .env file in medialoop directory
+        // write task to .env file in mediatimer directory
         dir_path.push("vars");
 
         let mut file = fs::OpenOptions::new()
@@ -299,18 +299,18 @@ fn write_task(task: Task) -> Result<(), IoError> {
 
 /// Before the program starts, it unmounts and remounts any usb drives.
 /// This is  called in order to unmount and remount any usbs using the naming conventions
-/// that the medialoop_init uses. The mount points for usb drives must be standardised in
+/// that the mediatimer_init uses. The mount points for usb drives must be standardised in
 /// order for this program to work. The program is designed this way so that it can be utilised 
 /// by non-technical users.
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    // issue command to pause medialoop_init
-    // systemctl --user stop medialoop_init.service
-    let _stop_medialoop_init = Command::new("systemctl")
+    // issue command to pause mediatimer_init
+    // systemctl --user stop mediatimer_init.service
+    let _stop_mediatimer_init = Command::new("systemctl")
         .arg("--user")
         .arg("stop")
-        .arg("medialoop_init.service")
+        .arg("mediatimer_init.service")
         .output()
         .expect("Medialoop not restarted");
 
@@ -318,7 +318,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
-    let env_dir_path: PathBuf =["/home/", &username, ".medialoop_config/vars"].iter().collect();
+    let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
 
     
 
@@ -411,12 +411,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     
     
-    // issue command to restart medialoop_init service
+    // issue command to restart mediatimer_init service
     /*
-    let enable_medialoop_init = Command::new("systemctl")
+    let enable_mediatimer_init = Command::new("systemctl")
         .arg("--user")
         .arg("start")
-        .arg("medialoop_init.service")
+        .arg("mediatimer_init.service")
         .output()
         .expect("Medialoop not restarted");
     */

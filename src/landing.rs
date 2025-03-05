@@ -80,7 +80,7 @@ impl LandingWidget {
     }
 
     fn render_text(area: Rect, buf: &mut Buffer) {
-        let title = Line::raw("Welcome to medialoop!").centered();
+        let title = Line::raw("Welcome to mediatimer!").centered();
         let _length = title.width() * 4;
         let block = Block::new()
             .title(title.clone())

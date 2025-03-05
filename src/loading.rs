@@ -82,10 +82,10 @@ impl LoadingWidget {
 
     fn run_command(&self, should_exit: Arc<AtomicBool>) {
         thread::spawn(move|| {
-            let _enable_medialoop_init = Command::new("systemctl")
+            let _enable_mediatimer_init = Command::new("systemctl")
                 .arg("--user")
                 .arg("start")
-                .arg("medialoop_init.service")
+                .arg("mediatimer_init.service")
                 .output()
                 .expect("Medialoop not restarted");
 
