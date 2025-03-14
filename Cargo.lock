@@ -402,7 +402,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "medialoop"
+name = "mediatimer"
 version = "0.1.0"
 dependencies = [
  "clokwerk",

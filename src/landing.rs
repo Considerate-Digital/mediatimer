@@ -67,7 +67,7 @@ impl LandingWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Medialoop Setup")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -80,7 +80,7 @@ impl LandingWidget {
     }
 
     fn render_text(area: Rect, buf: &mut Buffer) {
-        let title = Line::raw("Welcome to mediatimer!").centered();
+        let title = Line::raw("Welcome to Media Timer!").centered();
         let _length = title.width() * 4;
         let block = Block::new()
             .title(title.clone())
@@ -93,7 +93,7 @@ impl LandingWidget {
         let _para = Paragraph::new(
             vec![
                 Line::from(
-                        "Medialoop was created by Considerate Digital to automate"
+                        "Media Timer was created by Considerate Digital to automate"
                 ),
                 Line::from(
                         "and control players in exhibition spaces."
