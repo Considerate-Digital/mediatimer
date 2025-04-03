@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    layout::{Constraint, Layout, Rect },
+    layout::{Constraint, Layout, Rect, Flex },
     style::{
         Stylize,
     },
@@ -79,6 +79,36 @@ impl LandingWidget {
             .render(area, buf);
     }
 
+    fn render_logo(area: Rect, buf: &mut Buffer) {
+        let logo = indoc::indoc! {"
+
+
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⠶⣶⣶⣤⣤⣄⣀⠀⠀⠀⠀⠀⠀⣤
+            ⠀⠀⠀⠀⠀⠀⠀⢀⣤⡶⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠻⣶⣄⡀⠀⠀⣿
+            ⠀⠀⠀⠀⠀⣠⣴⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⣦⣄⣿
+            ⠀⠀⠀⢀⣼⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣤⣤⣤⣬⣿⣿
+            ⠀⠀⢠⡿⠋
+            ⠀⢠⡿⠁
+            ⠀⣾⠃
+            ⢰⡿
+            ⠸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⠁
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡏
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟
+            ⠀⠀⠀⠀⣤⣤⣤⣤⣤⣤⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⠟
+            ⠀⠀⠀⠀⣿⢿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠁
+            ⠀⠀⠀⠀⣿⠀⠙⠻⣶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⡾⠟⠉
+            ⠀⠀⠀⠀⣿⠀⠀⠀⠀⠉⠛⠿⣶⣦⣤⣤⣤⣀⣤⣤⣤⣴⡶⠿⠛⠉
+
+
+        "};
+        let logo_text = Text::styled(logo, Color::Rgb(255, 255, 255));
+        let area = centered_rect(area, logo_text.width() as u16, logo_text.height() as u16);
+
+        logo_text.render(area, buf);
+
+    }
     fn render_text(area: Rect, buf: &mut Buffer) {
         let title = Line::raw("Media Timer").centered();
         let _length = title.width() * 4;
@@ -114,7 +144,14 @@ impl LandingWidget {
     }
 
 }
-
+/// a centered rect of the given size
+fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
+    let horizontal = Layout::horizontal([width]).flex(Flex::Center);
+    let vertical = Layout::vertical([height]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
+}
 impl Widget for &mut LandingWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
 
@@ -125,13 +162,16 @@ impl Widget for &mut LandingWidget {
         ])
         .areas(area);
 
-        let [center_area] = Layout::vertical([
+        let [logo_area, text_area] = Layout::vertical([
+            Constraint::Fill(1),
             Constraint::Fill(1)
         ])
         .areas(main_area);
+
         LandingWidget::render_header(header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
-        LandingWidget::render_text(area, buf);
+        LandingWidget::render_logo(logo_area, buf);
+        LandingWidget::render_text(text_area, buf);
     }
 }
 
