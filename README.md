@@ -1,6 +1,6 @@
 # mediatimer
 
-Medialoop is a looping player for exhibitions, galleries or home automation.
+Media Timer is a looping player for exhibitions, galleries or home automation.
 You can schedule and optionally loop media files, executables or browser-based software.
 
 ## Dependencies
@@ -10,7 +10,7 @@ You can schedule and optionally loop media files, executables or browser-based s
 
 ## Setup
 
-This software was originally designed for FunOS (Ubuntu-based). FunOS (Ubuntu-based) is unusual for a linux desktop distribution, as it allows the default user to be root. For a FunOS (Ubuntu-based) installation, all that you would need to do would be to install the dependencies and then manually install `mediatimer` and `mediatimer_init` to `/usr/sbin/`. Finally, you would need to create a startup job or script that automatically runs `mediatimer_init` on startup.
+This software was originally designed for FunOS (Ubuntu-based). For a FunOS installation, all that you would need to do would be to install the dependencies and then manually install `mediatimer` and `mediatimer_init` to `/usr/sbin/`. Finally, you would need to create a startup job or script that automatically runs `mediatimer_init` on startup.
 
 ### Other linux distributions
 
