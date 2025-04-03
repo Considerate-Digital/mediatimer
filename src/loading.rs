@@ -87,7 +87,7 @@ impl LoadingWidget {
                 .arg("start")
                 .arg("mediatimer_init.service")
                 .output()
-                .expect("Medialoop not restarted");
+                .expect("Media Timer not restarted");
 
             should_exit.store(true, Ordering::Relaxed);
         });
@@ -139,7 +139,7 @@ impl LoadingWidget {
             vec![
                 Line::from("Please Wait"
                 ),
-                Line::from("Loading the configuration."
+                Line::from("Loading the configuration..."
                 ),
                 Line::from(""),
             ])

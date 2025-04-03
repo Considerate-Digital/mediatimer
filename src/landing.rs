@@ -82,6 +82,21 @@ impl LandingWidget {
     fn render_logo(area: Rect, buf: &mut Buffer) {
         let logo = indoc::indoc! {"
 
+            ⠀⠀⠀⠀⠀⠀⣀⣀⣤⡶⠶⠶⠶⠶⠶⢦⣤⣀⣀⠀⠀⢰⡆
+            ⠀⠀⠀⢀⣴⡿⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣦⣸⡇
+            ⠀⠀⣰⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣶⣶⣶⣿⣿⡇
+            ⠀⣼⡟
+            ⢰⡟
+            ⢸⡇
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠃
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠏
+            ⠀⠀⢸⣿⣿⠿⠿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⠏
+            ⠀⠀⢸⡏⠻⣷⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣾⠟⠁
+            ⠀⠀⢸⡇⠀⠀⠙⠻⠿⣶⣶⣶⣤⣶⣶⣾⠿⠛⠉
+
+        "};
+        let _big_logo = indoc::indoc! {"
 
             ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⠶⣶⣶⣤⣤⣄⣀⠀⠀⠀⠀⠀⠀⣤
             ⠀⠀⠀⠀⠀⠀⠀⢀⣤⡶⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠻⣶⣄⡀⠀⠀⣿
@@ -102,7 +117,6 @@ impl LandingWidget {
             ⠀⠀⠀⠀⣿⠀⠀⠀⠀⠉⠛⠿⣶⣦⣤⣤⣤⣀⣤⣤⣤⣴⡶⠿⠛⠉
             ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠁
 
-
         "};
         let logo_text = Text::styled(logo, Color::Rgb(255, 255, 255));
         let area = centered_rect(area, logo_text.width() as u16, logo_text.height() as u16);
@@ -111,15 +125,6 @@ impl LandingWidget {
 
     }
     fn render_text(area: Rect, buf: &mut Buffer) {
-        let title = Line::raw("Media Timer").centered();
-        let _length = title.width() * 4;
-        let block = Block::new()
-            .title(title.clone())
-            .borders(Borders::TOP)
-            .border_set(symbols::border::EMPTY)
-            .border_style(ITEM_HEADER_STYLE)
-            .padding(Padding::uniform(4))
-            .bg(ALT_ROW_BG_COLOR);
 
         let _para = Paragraph::new(
             vec![
@@ -135,13 +140,40 @@ impl LandingWidget {
                         "Press ENTER to start."
                 ),
             ])
-            .block(block)
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true })
             .render(
                 area,
                 buf
             );
+    }
+    fn render_center(area: Rect, buf: &mut Buffer) {
+        let title = Line::raw("Media Timer").centered();
+        let _length = title.width() * 4;
+
+        let block = Block::new()
+            .title(title.clone())
+            .borders(Borders::TOP)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .padding(Padding::uniform(4))
+            .bg(ALT_ROW_BG_COLOR);
+
+        // render block
+        block.render(area, buf);
+    
+        // split the center into two areas
+        let [logo_area, text_area] = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Fill(1)
+        ])
+        .areas(area);
+
+
+        // render logo inside block
+        LandingWidget::render_logo(logo_area, buf);
+        // render text inside block
+        LandingWidget::render_text(text_area, buf);
     }
 
 }
@@ -163,16 +195,13 @@ impl Widget for &mut LandingWidget {
         ])
         .areas(area);
 
-        let [logo_area, text_area] = Layout::vertical([
-            Constraint::Fill(1),
-            Constraint::Fill(1)
-        ])
-        .areas(main_area);
-
-        LandingWidget::render_header(header_area, buf);
+                LandingWidget::render_header(header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
+        LandingWidget::render_center(main_area, buf);
+        /*
         LandingWidget::render_logo(logo_area, buf);
         LandingWidget::render_text(text_area, buf);
+        */
     }
 }
 
