@@ -76,8 +76,8 @@ impl Default for AutoloopWidget {
             should_exit: false,
             selected_type: Autoloop::No,
             list_element_entries: AutoloopList::from_iter([
-                (Autoloop::Yes, "Auto loop this media file."),
-                (Autoloop::No, "Do not auto loop this media file.")
+                (Autoloop::Yes, "Auto loop this media file. Press ENTER to select."),
+                (Autoloop::No, "Do not auto loop this media file. Press ENTER to select.")
             ]),
         }
     }
@@ -89,8 +89,8 @@ impl AutoloopWidget {
             should_exit: false,
             selected_type: autoloop_preset,
             list_element_entries: AutoloopList::from_iter([
-                (Autoloop::Yes, "Auto loop this media file."),
-                (Autoloop::No, "Do not auto loop this media file.")
+                (Autoloop::Yes, "Auto loop this media file. Press ENTER to select."),
+                (Autoloop::No, "Do not auto loop this media file. Press ENTER to select.")
             ]),
 
         }
@@ -157,7 +157,7 @@ impl AutoloopWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Medialoop Setup")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -210,7 +210,7 @@ impl AutoloopWidget {
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("TYPE INFO").centered())
+            .title(Line::raw("INFORMATION").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

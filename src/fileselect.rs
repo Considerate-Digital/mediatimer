@@ -106,7 +106,7 @@ impl FileSelectWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Medialoop Setup")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -123,7 +123,7 @@ impl FileSelectWidget {
         let theme = Theme::default()
             .add_default_title()
             .with_block(Block::default()
-                .title(Line::raw("Select a media file.").centered())
+                .title(Line::raw("Select File").centered())
                 .borders(Borders::TOP)
                 .border_set(symbols::border::EMPTY)
                 .border_style(ITEM_HEADER_STYLE)
@@ -180,17 +180,17 @@ impl FileSelectWidget {
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
         let text = vec![ 
-            Line::from("Select a media file to loop using our file explorer."),
-            Line::from("Use the arrow keys ⇅ and the ENTER key to find the file you want to loop."),
+            Line::from("Select a file using our file explorer."),
+            Line::from("Use the arrow keys ⇅ to find the file you want to use."),
             Line::from("Press ENTER to select the file."),
             Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
-            Line::from("USB sticks will show up automatically but if you need to navigate to them manually you will find them in the directory called 'media'."),
+            Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
 
         ];
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("FILE INFO").centered())
+            .title(Line::raw("INSTRUCTIONS").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

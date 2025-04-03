@@ -925,7 +925,7 @@ impl TimingsWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Make the schedule")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -940,7 +940,7 @@ impl TimingsWidget {
 
     fn render_weekdays_list(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::new()
-            .title(Line::raw("Select a day").centered())
+            .title(Line::raw("Select Day").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
@@ -972,7 +972,7 @@ impl TimingsWidget {
             
         if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
             let block = Block::new()
-                .title(Line::raw("Edit the schedule").centered())
+                .title(Line::raw("Edit Timings").centered())
                 .borders(Borders::TOP | Borders::LEFT)
                 .border_set(symbols::border::EMPTY)
                 .border_style(ITEM_HEADER_STYLE)
@@ -1018,7 +1018,7 @@ impl TimingsWidget {
                    .borders(Borders::TOP | Borders::LEFT)
                    .border_set(symbols::border::EMPTY)
                    .style(ITEM_HEADER_STYLE)
-                   .title(Line::raw("Add timing").centered())
+                   .title(Line::raw("Add Timing").centered())
                )
                .render(area, buf);
 
@@ -1027,7 +1027,7 @@ impl TimingsWidget {
 
     fn render_op_list(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::new()
-            .title(Line::raw("Select an operation").centered())
+            .title(Line::raw("Select Task").centered())
             .borders(Borders::ALL)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
@@ -1062,7 +1062,7 @@ impl TimingsWidget {
            .block(
                Block::bordered()
                .style(ITEM_HEADER_STYLE)
-               .title(Line::raw("Add timing").centered())
+               .title(Line::raw("Add Timing").centered())
            )
            .render(area, buf);
     }
@@ -1076,7 +1076,7 @@ impl TimingsWidget {
            .block(
                Block::bordered()
                .style(ITEM_HEADER_STYLE)
-               .title(Line::raw("Edit timing").centered())
+               .title(Line::raw("Edit Timing").centered())
            )
            .render(area, buf);
 
@@ -1173,17 +1173,18 @@ impl TimingsWidget {
         };
         */
         let info = vec![ 
-            Line::from("Enter the start and end timings for each schedule entry."),
-            Line::from("Use ENTER or the right keyboard arrow to advance through the menu."),
-            Line::from("Add, Edit or Delete schedule timings."),
-            Line::from("Use ESC or the left keyboard arrow to retreat through the menu."),
+            Line::from("Use the arrow keys ⇅ to select a day."),
+            Line::from("Use ENTER or → to display the schedule."),
+            Line::from("Select a timing and press ENTER to Add, Edit or Delete."),
+            Line::from("Enter the start and end timings for each new schedule entry."),
+            Line::from("Use ESC or ← to exit."),
             Line::from("Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
             Line::from("Example: 12:20:00-13:15:00"),
         ];
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("SCHEDULE INFO").centered())
+            .title(Line::raw("INSTRUCTIONS").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

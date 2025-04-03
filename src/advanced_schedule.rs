@@ -76,8 +76,8 @@ impl Default for AdvancedScheduleWidget {
             should_exit: false,
             selected_type: AdvancedSchedule::No,
             list_element_entries: AdvancedScheduleList::from_iter([
-                (AdvancedSchedule::Yes, "Set up an advanced schedule."),
-                (AdvancedSchedule::No, "Do not use an advanced schedule.")
+                (AdvancedSchedule::Yes, "Set up an advanced schedule. Press ENTER to confirm."),
+                (AdvancedSchedule::No, "Do not use an advanced schedule. Press ENTER to confirm. If you do not use an advanced schedule any image, video or audio file will automatically loop.")
 
             ]),
         }
@@ -90,8 +90,8 @@ impl AdvancedScheduleWidget {
             should_exit: false,
             selected_type: preset_schedule,
             list_element_entries: AdvancedScheduleList::from_iter([
-                (AdvancedSchedule::Yes, "Set up an advanced schedule."),
-                (AdvancedSchedule::No, "Do not use an advanced schedule. If you do not use an advanced schedule any image, video or audio file will automatically loop.")
+                (AdvancedSchedule::Yes, "Set up an advanced schedule. Press ENTER to confirm."),
+                (AdvancedSchedule::No, "Do not use an advanced schedule. Press ENTER to confirm. If you do not use an advanced schedule any image, video or audio file will automatically loop.")
 
             ]),
         }
@@ -157,7 +157,7 @@ impl AdvancedScheduleWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Advanced Schedule Setup")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -210,7 +210,7 @@ impl AdvancedScheduleWidget {
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("ADVANCED SCHEDULE INFO").centered())
+            .title(Line::raw("INFORMATION").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

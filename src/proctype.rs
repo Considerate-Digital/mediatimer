@@ -161,7 +161,7 @@ impl ProcTypeWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Medialoop Setup")
+        Paragraph::new("Media Timer Setup")
             .bold()
             .centered()
             .render(area, buf);
@@ -206,15 +206,24 @@ impl ProcTypeWidget {
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
         // get the info
-        let info = if let Some(i) = self.proc_type_entries.state.selected() {
-            self.proc_type_entries.list[i].info.clone()
-        } else {
-            "Nothing selected...".to_string()
+        let (info, mut title) = if let Some(i) = self.proc_type_entries.state.selected() {
+            let pt_str = match self.proc_type_entries.list[i].proc_type {
+                ProcType::Media => ProcType::Media.as_ref(),
+                ProcType::Browser => ProcType::Browser.as_ref(),
+                ProcType::Executable => ProcType::Executable.as_ref()
+            };
+            let title_str = String::from(pt_str.to_uppercase());
+                (self.proc_type_entries.list[i].info.clone(), title_str)
+             } else {
+                 ("Nothing selected...".to_string(), "".to_string())
         };
+    
+
+        title.push_str(" INFO");
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw("TYPE INFO").centered())
+            .title(Line::raw(&title).centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

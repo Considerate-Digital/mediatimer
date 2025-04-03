@@ -21,7 +21,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
 };
-use strum::Display;
+use strum::{
+    Display,
+    AsRefStr
+};
 
 mod proctype;
 use crate::proctype::ProcTypeWidget;
@@ -55,7 +58,7 @@ use crate::timings::{
     TimingsWidget
 };
 
-#[derive(Debug, Display, PartialEq)]
+#[derive(Debug, Display, PartialEq, AsRefStr)]
 pub enum ProcType {
     Media,
     Browser,
