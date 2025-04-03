@@ -938,6 +938,11 @@ impl TimingsWidget {
                 .border_set(symbols::border::EMPTY)
                 .border_style(ITEM_HEADER_STYLE)
                 .bg(NORMAL_ROW_BG);
+            
+            // sorting the Timing struct
+            self.list_element_entries.list[self.weekday_selected]
+                .timings.timing_collection.sort_by(|a, b| 
+                    b.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap().cmp(&a.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap()));
 
             // Iterate through all the timings in the weekday selected and stylise them
             let items: Vec<ListItem> = self 
