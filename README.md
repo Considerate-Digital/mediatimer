@@ -18,3 +18,4 @@ It is possible to run this software on other linux distributions, but be aware t
 
 ## Future Plans
 - Add automatic addition of systemd service for mediatimer_init if none exists
+- Make the full schedule available to view
