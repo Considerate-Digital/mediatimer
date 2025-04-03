@@ -319,6 +319,11 @@ impl From<&ExitItem> for ListItem<'_> {
     }
 }
 
+enum ErrorType {
+    Format,
+    Clash
+}
+
 
 pub struct TimingsWidget {
     should_exit: bool,
@@ -334,7 +339,7 @@ pub struct TimingsWidget {
     input_area: Rect,
     del_op_list: DelOpList,
     exit_list: ExitList,
-    error_message: String,
+    error_type: ErrorType,
     list_element_entries: TimingsList,
     schedule: CommonTimings
 }
@@ -405,7 +410,7 @@ impl Default for TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
-            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
+            error_type: ErrorType::Format,
             list_element_entries: TimingsList::from_iter([
                 (Weekday::Monday(TimingCollection::default()), info_text),
                 (Weekday::Tuesday(TimingCollection::default()), info_text),
@@ -474,7 +479,7 @@ impl TimingsWidget {
             input_area: Rect::new(0,0,0,0),
             del_op_list: DelOpList::default(),
             exit_list: ExitList::default(),
-            error_message: String::from("Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00"),
+            error_type: ErrorType::Format,
             list_element_entries: parsed_timings,
             schedule: Vec::with_capacity(7)
         }
@@ -632,14 +637,18 @@ impl TimingsWidget {
                     KeyCode::Backspace => self.delete_char(),
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
-                        if self.timing_format_correct() {
+                        if !self.timing_format_correct() {
+                            self.error_type = ErrorType::Format;
+                            self.current_screen = CurrentScreen::Error;
+                        } else if !self.timing_format_no_clash() {
+                            self.error_type = ErrorType::Clash;
+                            self.current_screen = CurrentScreen::Error;
+                        } else {
                             let t = self.parse_timing_from_input();
                             self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
                             self.reverse_state();
                             self.input.clear();
                             self.character_index = 0;
-                        } else {
-                            self.current_screen = CurrentScreen::Error;
                         }
                     }
                     _ => {}
@@ -654,15 +663,18 @@ impl TimingsWidget {
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
                         // check, then parse the timing
-                        if self.timing_format_correct() {
+                        if !self.timing_format_correct() {
+                            self.error_type = ErrorType::Format;
+                            self.current_screen = CurrentScreen::Error;
+                        } else if !self.timing_format_no_clash() {
+                            self.error_type = ErrorType::Clash;
+                            self.current_screen = CurrentScreen::Error;
+                        } else {
                             let t = self.parse_timing_from_input();
                             let _removed = std::mem::replace(&mut self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected], t);
                             self.reverse_state();
                             self.input.clear();
                             self.character_index = 0;
-                        } else {
-                            // show error
-                            self.current_screen = CurrentScreen::Error;
                         }
                     }
                     _ => {}
@@ -727,6 +739,16 @@ impl TimingsWidget {
             }
         }
     }
+    // this needs to extract the whole string and parse to two u32s that are the full times 
+    // combined into one u32
+    fn extract_timings_from_input(&self, input: &String) -> (u32, u32) {
+        let two_timings = input.split("-").collect::<Vec<&str>>();
+
+         let t_start = two_timings[0].split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+        let t_end = two_timings[1].split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+
+        (t_start, t_end)
+    }
 
     fn timing_format_correct(&self) -> bool {
         let re = Regex::new(r"^(?<h>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]$").unwrap();
@@ -753,6 +775,23 @@ impl TimingsWidget {
         }
 
     }
+
+    fn timing_format_no_clash(&self) -> bool {
+        // iterate through each timing for the current day
+        // if input start is after any 
+        let (start, end) = self.extract_timings_from_input(&self.input);
+        for t in self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter() {
+            let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+            let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+            if start >= t_start && start <= t_end {
+                return false;
+            } else if end <= t_end && end >= t_start {
+                return false;
+            }
+        }
+        true
+    }
+
     fn parse_timing_from_input(&self) -> Timing {
         let new_t = self.input.as_str()
             .split("-")
@@ -942,7 +981,7 @@ impl TimingsWidget {
             // sorting the Timing struct
             self.list_element_entries.list[self.weekday_selected]
                 .timings.timing_collection.sort_by(|a, b| 
-                    b.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap().cmp(&a.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap()));
+                    a.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap().cmp(&b.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap()));
 
             // Iterate through all the timings in the weekday selected and stylise them
             let items: Vec<ListItem> = self 
@@ -1075,8 +1114,12 @@ impl TimingsWidget {
     }
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
+        let message = match self.error_type {
+            ErrorType::Format => "Formating Error! Please check the timing format you have entered. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00",
+            ErrorType::Clash => "Clash Error! Please check that the timing does not clash with another existing timing."
+        };
 
-        let input = Paragraph::new(Line::raw(&self.error_message)) 
+        let input = Paragraph::new(Line::raw(message)) 
            .style(SELECTED_STYLE)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
