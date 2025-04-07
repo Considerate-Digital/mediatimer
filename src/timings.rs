@@ -123,7 +123,7 @@ impl Widget for Popup<'_> {
             .render(area, buf);
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum CurrentScreen {
     Weekdays,
     Day,
@@ -801,19 +801,6 @@ impl TimingsWidget {
         t
     }
     
-    /*
-    match self.current_screen {
-        CurrentScreen::Weekdays => {},
-        CurrentScreen::Day => {},
-        CurrentScreen::TimingOptions => {},
-        CurrentScreen::Add => {},
-        CurrentScreen::Edit => {},
-        CurrentScreen::Delete => {},
-        CurrentScreen::Error => {},
-        CurrentScreen::Exit => {}
-    }
-    */
-
     fn reverse_state(&mut self) {
         match self.current_screen {
             CurrentScreen::Weekdays => self.current_screen = CurrentScreen::Weekdays,
@@ -1440,3 +1427,112 @@ impl Widget for &mut TimingsWidget {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_reverse_state() {
+        let mut t_widget = TimingsWidget::default();
+        // current state is CurrentScreen::Weekdays
+        t_widget.current_screen = CurrentScreen::Day;
+        t_widget.reverse_state();
+        // state should now be CurrentScreen::Weekdays
+        
+        assert!(t_widget.current_screen == CurrentScreen::Weekdays);
+
+        // set state to CurrentScreen::TimingOptions
+        t_widget.current_screen = CurrentScreen::TimingOptions;
+        t_widget.reverse_state();
+
+        assert!(t_widget.current_screen == CurrentScreen::Day);
+
+        t_widget.current_screen = CurrentScreen::Add;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::Day);
+
+        t_widget.current_screen = CurrentScreen::Edit;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::Day);
+
+        t_widget.current_screen = CurrentScreen::Delete;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::Day);
+
+        t_widget.current_screen = CurrentScreen::Error;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
+
+        t_widget.current_screen = CurrentScreen::Exit;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::Weekdays);
+    }
+
+    #[test]
+    fn check_parse_timing_from_input() {
+        let mut t_widget = TimingsWidget::default();
+        t_widget.input = String::from("10:00:00-11:00:00");
+        let timing = t_widget.parse_timing_from_input();
+        assert_eq!(timing.timing.0, "10:00:00");
+        assert_eq!(timing.timing.1, "11:00:00");
+    }
+
+    #[test]
+    fn check_timing_format_no_clash() {
+        let mut t_widget = TimingsWidget::default();
+        t_widget.input = String::from("11:11:11-12:12:12");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be false because the default timing is 9am-5pm
+        // there is a clash
+        assert_eq!(no_clash, false);
+
+        t_widget.input = String::from("08:00:00-08:50:00");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be no clash 
+        assert_eq!(no_clash, true);
+    }
+
+    #[test]
+    fn check_timing_format_correct() {
+        let mut t_widget = TimingsWidget::default();
+        t_widget.input = String::from("10:00:00-11:00:00");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, true);
+
+        t_widget.input = String::from("10:00:000-11:00:00");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, false);
+
+        t_widget.input = String::from("10:00:00-11:000:00");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, false);
+
+        t_widget.input = String::from("ten-four");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, false);
+
+        t_widget.input = String::from("10:00-11:00");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, false);
+
+        t_widget.input = String::from("some text here");
+        let format_correct = t_widget.timing_format_correct();
+        assert_eq!(format_correct, false);
+    }
+
+    #[test]
+    fn check_extract_timings_from_input() {
+        let mut t_widget = TimingsWidget::default();
+        t_widget.input = String::from("10:00:00-11:00:00");
+        let extracted_timings = t_widget.extract_timings_from_input(&t_widget.input);
+        assert_eq!(extracted_timings.0, 100000 as u32);
+        assert_eq!(extracted_timings.1, 110000 as u32);
+
+        let input = String::from("12:12:12-16:00:00");
+        let extracted_timings = t_widget.extract_timings_from_input(&input);
+        assert_eq!(extracted_timings.0, 121212 as u32);
+        assert_eq!(extracted_timings.1, 160000 as u32);
+
+
+    }
+}
