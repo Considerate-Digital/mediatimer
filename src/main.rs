@@ -418,6 +418,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
+    use std::io::{BufRead, BufReader};
+    use tempfile::tempdir;
+    use std::env;
 
     #[test]
     fn check_to_weekday() {
@@ -442,5 +446,127 @@ mod tests {
             (String::from("11:00:01"), String::from("12:12:12"))
             );
         assert_eq!(weekday, Weekday::Thursday(schedule));
+    }
+
+
+     #[test]
+    fn test_write_task() {
+        // Create a temporary directory to use as home directory for the test
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let temp_path = temp_dir.path().to_path_buf();
+
+        // Override the home directory for the test
+        // Using an environment variable to mock home::home_dir()
+        temp_dir.path().to_str().map(|home_path| {
+            env::set_var("HOME", home_path);
+        });
+
+        // Create test data
+        let proc_type = ProcType::Media;
+        let auto_loop = Autoloop::Yes;
+        let advanced_schedule = AdvancedSchedule::Yes;
+
+        // Create schedule for Monday (10:00-11:00)
+        let monday_schedule = vec![("10:00".to_string(), "11:00".to_string())];
+        let monday = Weekday::Monday(monday_schedule);
+
+        // Create schedule for Friday (15:30-16:45, 18:00-19:30)
+        let friday_schedule = vec![
+            ("15:30".to_string(), "16:45".to_string()),
+            ("18:00".to_string(), "19:30".to_string())
+        ];
+        let friday = Weekday::Friday(friday_schedule);
+
+        // Create empty schedules for other days
+        let tuesday = Weekday::Tuesday(Vec::new());
+        let wednesday = Weekday::Wednesday(Vec::new());
+        let thursday = Weekday::Thursday(Vec::new());
+        let saturday = Weekday::Saturday(Vec::new());
+        let sunday = Weekday::Sunday(Vec::new());
+
+        // Combine all schedules
+        let timings = vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday];
+
+        // Test file path
+        let file_path = PathBuf::from("/path/to/test/file.mp4");
+
+        // Create task
+        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path);
+
+        // Write task to file
+        write_task(task).expect("Failed to write task");
+
+        // Check if config directory was created
+        let config_dir = temp_path.join(".mediatimer_config");
+        assert!(config_dir.exists(), "Config directory was not created");
+
+        // Check if vars file was created
+        let vars_file = config_dir.join("vars");
+        assert!(vars_file.exists(), "Vars file was not created");
+
+        // Read the contents of the vars file
+        let file = fs::File::open(&vars_file).expect("Failed to open vars file");
+        let reader = BufReader::new(file);
+        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
+
+        // Verify file contents
+        assert!(lines.contains(&"ML_PROCTYPE=\"media\"".to_string()), "Missing or incorrect process type");
+        assert!(lines.contains(&"ML_AUTOLOOP=\"true\"".to_string()), "Missing or incorrect autoloop setting");
+        assert!(lines.contains(&"ML_SCHEDULE=\"true\"".to_string()), "Missing or incorrect schedule setting");
+        assert!(lines.contains(&"ML_MONDAY=10:00-11:00".to_string()), "Missing or incorrect Monday schedule");
+        assert!(lines.contains(&"ML_FRIDAY=15:30-16:45,18:00-19:30".to_string()), "Missing or incorrect Friday schedule");
+        assert!(lines.contains(&"ML_FILE=\"/path/to/test/file.mp4\"".to_string()), "Missing or incorrect file path");
+
+        // Verify empty schedules
+        assert!(lines.contains(&"ML_TUESDAY=".to_string()), "Missing Tuesday schedule");
+        assert!(lines.contains(&"ML_WEDNESDAY=".to_string()), "Missing Wednesday schedule");
+        assert!(lines.contains(&"ML_THURSDAY=".to_string()), "Missing Thursday schedule");
+        assert!(lines.contains(&"ML_SATURDAY=".to_string()), "Missing Saturday schedule");
+        assert!(lines.contains(&"ML_SUNDAY=".to_string()), "Missing Sunday schedule");
+    }
+
+    #[test]
+    fn test_write_task_no_advanced_schedule() {
+        // Create a temporary directory to use as home directory for the test
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let temp_path = temp_dir.path().to_path_buf();
+
+        // Override the home directory for the test
+        temp_dir.path().to_str().map(|home_path| {
+            env::set_var("HOME", home_path);
+        });
+
+        // Create test data with no advanced schedule
+        let proc_type = ProcType::Browser;
+        let auto_loop = Autoloop::No;
+        let advanced_schedule = AdvancedSchedule::No;
+        let timings = default_timings(); // Use default empty timings
+        let file_path = PathBuf::from("/path/to/browser/page.html");
+
+        // Create task
+        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path);
+
+        // Write task to file
+        write_task(task).expect("Failed to write task");
+
+        // Check if vars file was created
+        let vars_file = temp_path.join(".mediatimer_config").join("vars");
+        assert!(vars_file.exists(), "Vars file was not created");
+
+        // Read the contents of the vars file
+        let file = fs::File::open(&vars_file).expect("Failed to open vars file");
+        let reader = BufReader::new(file);
+        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
+
+        // Verify file contents
+        assert!(lines.contains(&"ML_PROCTYPE=\"browser\"".to_string()), "Missing or incorrect process type");
+        assert!(lines.contains(&"ML_AUTOLOOP=\"false\"".to_string()), "Missing or incorrect autoloop setting");
+        assert!(lines.contains(&"ML_SCHEDULE=\"false\"".to_string()), "Missing or incorrect schedule setting");
+        assert!(lines.contains(&"ML_FILE=\"/path/to/browser/page.html\"".to_string()), "Missing or incorrect file path");
+
+        // Verify empty schedules are still written
+        for day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] {
+            assert!(lines.contains(&format!("ML_{}=", day)), "Missing {} schedule", day);
+        }
     }
 }
