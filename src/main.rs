@@ -87,7 +87,7 @@ pub enum Reboot {
 type Schedule = Vec<(String, String)>;
 type Timings = Vec<Weekday>;
 
-#[derive(Display, Debug, Clone)]
+#[derive(Display, Debug, Clone, PartialEq)]
 pub enum Weekday {
     Monday(Schedule),
     Tuesday(Schedule),
@@ -281,19 +281,8 @@ fn write_task(task: Task) -> Result<(), IoError> {
 
        // write file
        let _ = writeln!(file, "ML_FILE=\"{}\"", task.file.display())?;
-        /*
-       // advanced use
-       let _ = writeln!(file, "# Change this to 'true' if you want to use a custom schedule");
-       let _ = writeln!(file, "ML_SCHEDULE=\"false\"");
 
-       //full schedule layout
-       let schedule = "#ML_MONDAY=\"09:00-12:00,13:00-17:00\"\n#ML_TUESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_WEDNESDAY=\"09:00-12:00,13:00-17:00\"\n#ML_THURSDAY=\"09:00-12:00,13:00-17:00\"\n#ML_FRIDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SATURDAY=\"09:00-12:00,13:00-17:00\"\n#ML_SUNDAY=\"09:00-12:00,13:00-17:00\"\n";
-       let _ = writeln!(file, "# Remove the '#' at the start of each day that you require a customised schedule for.\n# Edit the timings and add new entries if needed.\n# Make sure the timings have the format START-END and are comma (',') separated with no spaces.\n# Schedule timings can be specified in either minute-format (10:00) or second-format (10:00:00)\n# Note that the auto-loop feature only applies to media files and you must implement internal loops yourself for browser-based or executable files.");
-       let _ = writeln!(file, "{}", schedule);
-        */
-            
-
-   } else {
+      } else {
        eprintln!("Could not find home directory.");
        IoError::other("Could not find home directory");
    }
@@ -315,15 +304,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("stop")
         .arg("mediatimer_init.service")
         .output()
-        .expect("Medialoop not restarted");
+        .expect("Media Timer not restarted");
 
 
     // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
-
-    
 
 
     // set up the config vars
@@ -413,21 +400,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("Error writing tasks to env file: {}", e);
     }
     
-    
-    // issue command to restart mediatimer_init service
-    /*
-    let enable_mediatimer_init = Command::new("systemctl")
-        .arg("--user")
-        .arg("start")
-        .arg("mediatimer_init.service")
-        .output()
-        .expect("Medialoop not restarted");
-    */
+    // loading issues the command to enable the mediatimer_init service
     let _loading = LoadingWidget::default().run(&mut terminal)?;
-    
-
-    // return Ok(Reboot) e.g. Ok(Reboot::No)
-    //let reboot = RebootWidget::default().run(&mut terminal)?;
 
     disable_raw_mode()?;
     execute!(
@@ -437,18 +411,36 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-
-    // if reboot selected then reboot
-    /*
-        match reboot {
-            Reboot::Yes => {
-                let _reboot = Command::new("reboot")
-                    .output()
-                    .expect("could not reboot");
-            }
-            Reboot::No => {}
-        }
-    */
-
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_to_weekday() {
+        let weekday = to_weekday(String::new(), Weekday::Monday(Vec::new())).unwrap();
+        assert_eq!(weekday, Weekday::Monday(Vec::new()));
+        
+        let weekday = to_weekday(String::from("10:00:00-11:00:00"), Weekday::Tuesday(Vec::new())).unwrap();
+        let schedule = vec!((String::from("10:00:00"), String::from("11:00:00")));
+        assert_eq!(weekday, Weekday::Tuesday(schedule));
+        
+
+        let weekday = to_weekday(String::from("10:00:00-11:00:00,11:00:01-12:12:12"), Weekday::Wednesday(Vec::new())).unwrap();
+        let schedule = vec!(
+            (String::from("10:00:00"), String::from("11:00:00")),
+            (String::from("11:00:01"), String::from("12:12:12"))
+            );
+        assert_eq!(weekday, Weekday::Wednesday(schedule));
+
+        let weekday = to_weekday(String::from(" 10:00:00-11:00:00 , 11:00:01-12:12:12"), Weekday::Thursday(Vec::new())).unwrap();
+        let schedule = vec!(
+            (String::from("10:00:00"), String::from("11:00:00")),
+            (String::from("11:00:01"), String::from("12:12:12"))
+            );
+        assert_eq!(weekday, Weekday::Thursday(schedule));
+    }
 }
