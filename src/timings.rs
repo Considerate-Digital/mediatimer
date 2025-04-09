@@ -4,7 +4,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect, Position},
     style::{
-        Color, Stylize, Style
+        Color, Stylize, Style, Modifier
     },
     symbols,
     text::{Line, Text},
@@ -200,7 +200,8 @@ impl TimingCollection {
 enum TimingOp {
     Add,
     Del,
-    Edit
+    Edit,
+    Exit
 }
 
 impl TimingOp {
@@ -208,14 +209,17 @@ impl TimingOp {
         match self {
             TimingOp::Add => "Add",
             TimingOp::Del => "Delete",
-            TimingOp::Edit => "Edit"
+            TimingOp::Edit => "Edit",
+            TimingOp::Exit => "Exit"
+
         }
     }
     fn as_vec_of_str(&self) -> Vec<TimingOpItem> {
         vec![
             TimingOpItem::from("Add"), 
             TimingOpItem::from("Delete"), 
-            TimingOpItem::from("Edit")
+            TimingOpItem::from("Edit"),
+            TimingOpItem::from("Exit")
         ]
     }
 }
@@ -566,7 +570,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Day => {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Char('q') | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -603,6 +607,7 @@ impl TimingsWidget {
                                 0 => TimingOp::Add,
                                 1 => TimingOp::Del,
                                 2 => TimingOp::Edit,
+                                3 => TimingOp::Exit,
                                 _ => TimingOp::Add
 
                             };
@@ -622,6 +627,7 @@ impl TimingsWidget {
                                         self.reverse_state();
                                     }
                                 },
+                                TimingOp::Exit => self.current_screen = CurrentScreen::Exit
                             };
                         };
 
@@ -637,6 +643,7 @@ impl TimingsWidget {
                     KeyCode::Backspace => self.delete_char(),
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
+                        self.previous_screen = CurrentScreen::Add;
                         if !self.timing_format_correct() {
                             self.error_type = ErrorType::Format;
                             self.current_screen = CurrentScreen::Error;
@@ -645,7 +652,14 @@ impl TimingsWidget {
                             self.current_screen = CurrentScreen::Error;
                         } else {
                             let t = self.parse_timing_from_input();
+                            // add the new timing to the list
                             self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
+                            // TODO select the timing just created
+                            // find the timing in the list
+                            //let i = self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter().position(|t| <Timing as Clone>::clone(&t).format() == self.input).unwrap();
+                            // set the selected timing on the widget wrapper
+                            //self.timing_selected = i;
+
                             self.reverse_state();
                             self.input.clear();
                             self.character_index = 0;
@@ -662,6 +676,7 @@ impl TimingsWidget {
                     KeyCode::Backspace => self.delete_char(),
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
+                        self.previous_screen = CurrentScreen::Edit;
                         // check, then parse the timing
                         if !self.timing_format_correct() {
                             self.error_type = ErrorType::Format;
@@ -708,7 +723,11 @@ impl TimingsWidget {
             },
             CurrentScreen::Error => {
                 // use any key press to leave error screen
-                self.reverse_state()
+                match self.previous_screen {
+                    CurrentScreen::Add => self.current_screen = CurrentScreen::Add,
+                    CurrentScreen::Edit => self.current_screen = CurrentScreen::Edit,
+                    _ => self.reverse_state()
+                }
             },
             CurrentScreen::Exit => {
                 match key.code {
@@ -778,9 +797,11 @@ impl TimingsWidget {
 
     fn timing_format_no_clash(&self) -> bool {
         // iterate through each timing for the current day
-        // if input start is after any 
+        // if input start is after any other start but before the end it will clash
+        // Must not include current timing being edited
         let (start, end) = self.extract_timings_from_input(&self.input);
-        for t in self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter() {
+        for (i, t) in self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter().enumerate() {
+            if self.current_screen == CurrentScreen::Edit && i == self.timing_selected { return true }
             let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
             let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
             if start >= t_start && start <= t_end {
@@ -806,8 +827,8 @@ impl TimingsWidget {
             CurrentScreen::Weekdays => self.current_screen = CurrentScreen::Weekdays,
             CurrentScreen::Day => self.current_screen = CurrentScreen::Weekdays,
             CurrentScreen::TimingOptions => self.current_screen = CurrentScreen::Day,
-            CurrentScreen::Add => self.current_screen = CurrentScreen::Day,
-            CurrentScreen::Edit => self.current_screen = CurrentScreen::Day,
+            CurrentScreen::Add => self.current_screen = CurrentScreen::TimingOptions,
+            CurrentScreen::Edit => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Error => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
@@ -1025,10 +1046,22 @@ impl TimingsWidget {
             .timing_op_list
             .timing_ops
             .iter()
+            .filter(|ops| 
+                if &ops.op_item == "Edit" {
+                    if self.list_element_entries.list[self.weekday_selected]
+                            .timings.timing_collection.len() == 0 {
+                        false
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                }
+            )
             .enumerate()
             .map(|(i, ops)| {
                 let color = alternate_colors(i);
-                ListItem::from(ops).bg(color)
+                    ListItem::from(ops).bg(color)
             })
             .collect();
 
