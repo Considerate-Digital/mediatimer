@@ -223,7 +223,7 @@ impl ProcTypeWidget {
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw(&title).centered())
+            .title(Line::raw(&title).centered().style(FOOTER_STYLE))
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

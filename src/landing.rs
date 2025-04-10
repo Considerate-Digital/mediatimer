@@ -18,7 +18,9 @@ use std::error::Error;
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
     ALT_ROW_BG_COLOR,
+    TEXT_FG_COLOR,
 };
 
 use crate::areas::{
@@ -118,7 +120,7 @@ impl LandingWidget {
             ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠁
 
         "};
-        let logo_text = Text::styled(logo, Color::Rgb(255, 255, 255));
+        let logo_text = Text::styled(logo, TEXT_FG_COLOR);
         let area = centered_rect(area, logo_text.width() as u16, logo_text.height() as u16);
 
         logo_text.render(area, buf);
@@ -142,6 +144,8 @@ impl LandingWidget {
             ])
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true })
+            .bg(NORMAL_ROW_BG)
+            .fg(TEXT_FG_COLOR)
             .render(
                 area,
                 buf
@@ -157,7 +161,7 @@ impl LandingWidget {
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
             .padding(Padding::uniform(4))
-            .bg(ALT_ROW_BG_COLOR);
+            .bg(NORMAL_ROW_BG);
 
         // render block
         block.render(area, buf);
