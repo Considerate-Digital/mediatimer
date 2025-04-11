@@ -698,7 +698,7 @@ impl TimingsWidget {
 
             CurrentScreen::Delete => {
                 match key.code {
-                    KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
                     KeyCode::Char('g') | KeyCode::Home => self.select_first(),
@@ -731,7 +731,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Exit => {
                 match key.code {
-                    KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
                     KeyCode::Char('g') | KeyCode::Home => self.select_first(),
