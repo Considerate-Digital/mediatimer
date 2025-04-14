@@ -17,5 +17,4 @@ This software was originally designed for FunOS (Ubuntu-based). For a FunOS inst
 It is possible to run this software on other linux distributions, but be aware that it was not designed to work on devices other than those provided by Considerate Digital and is not tested in other environments.
 
 ## Future Plans
-- Add automatic addition of systemd service for mediatimer_init if none exists
 - Make the full schedule available to view
