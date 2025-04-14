@@ -804,9 +804,11 @@ impl TimingsWidget {
             if self.current_screen == CurrentScreen::Edit && i == self.timing_selected { return true }
             let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
             let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
-            if start >= t_start && start <= t_end {
+            if start <= t_start && end >= t_start {
                 return false;
-            } else if end <= t_end && end >= t_start {
+            } else if start <= t_start && end >= t_end {
+                return false;
+            } else if start <= t_end && end >= t_end {
                 return false;
             }
         }
