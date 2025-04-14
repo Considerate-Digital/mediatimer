@@ -1080,7 +1080,7 @@ impl TimingsWidget {
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
        let input = Paragraph::new(self.input.as_str()) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
                Block::bordered()
@@ -1094,7 +1094,7 @@ impl TimingsWidget {
         // set the current input as the entry selected.
 
         let input = Paragraph::new(self.input.as_str()) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
                Block::bordered()
@@ -1143,7 +1143,7 @@ impl TimingsWidget {
         };
 
         let input = Paragraph::new(Line::raw(message)) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
            .block(
