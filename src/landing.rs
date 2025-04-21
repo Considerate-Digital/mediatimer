@@ -18,7 +18,9 @@ use std::error::Error;
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
     ALT_ROW_BG_COLOR,
+    TEXT_FG_COLOR,
 };
 
 use crate::areas::{
@@ -113,48 +115,7 @@ impl LandingWidget {
         ⣿⠀⠙⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠋⠀⣿
         ⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛
         "};
-    /*
-        let logo = indoc::indoc! {"
-
-
-            ⠀⠀⠀⠀⠀⠀⣀⣀⣤⡶⠶⠶⠶⠶⠶⢦⣤⣀⣀⠀⠀⢰⡆
-            ⠀⠀⠀⢀⣴⡿⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣦⣸⡇
-            ⠀⠀⣰⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣶⣶⣶⣿⣿⡇
-            ⠀⣼⡟
-            ⢰⡟
-            ⢸⡇
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠃
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠏
-            ⠀⠀⢸⣿⣿⠿⠿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⠏
-            ⠀⠀⢸⡏⠻⣷⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣾⠟⠁
-            ⠀⠀⢸⡇⠀⠀⠙⠻⠿⣶⣶⣶⣤⣶⣶⣾⠿⠛⠉
-
-        "};
-        let _big_logo = indoc::indoc! {"
-
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⠶⣶⣶⣤⣤⣄⣀⠀⠀⠀⠀⠀⠀⣤
-            ⠀⠀⠀⠀⠀⠀⠀⢀⣤⡶⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⠻⣶⣄⡀⠀⠀⣿
-            ⠀⠀⠀⠀⠀⣠⣴⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⣦⣄⣿
-            ⠀⠀⠀⢀⣼⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣤⣤⣤⣬⣿⣿
-            ⠀⠀⢠⡿⠋
-            ⠀⢠⡿⠁
-            ⠀⣾⠃
-            ⢰⡿
-            ⠸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⠁
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡏
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟
-            ⠀⠀⠀⠀⣤⣤⣤⣤⣤⣤⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⠟
-            ⠀⠀⠀⠀⣿⢿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠁
-            ⠀⠀⠀⠀⣿⠀⠙⠻⣶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⡾⠟⠉
-            ⠀⠀⠀⠀⣿⠀⠀⠀⠀⠉⠛⠿⣶⣦⣤⣤⣤⣀⣤⣤⣤⣴⡶⠿⠛⠉
-            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠁
-
-        "};
-    */
-        let logo_text = Text::styled(logo, Color::Rgb(255, 255, 255));
+        let logo_text = Text::styled(logo, TEXT_FG_COLOR);
         let area = centered_rect(area, logo_text.width() as u16, logo_text.height() as u16);
 
         logo_text.render(area, buf);
@@ -164,13 +125,8 @@ impl LandingWidget {
 
         let _para = Paragraph::new(
             vec![
-                Line::from(
-                        "Media Timer was created by Considerate Digital to automate"
-                ),
-                Line::from(
-                        "and control players in exhibition spaces."
-                ),
-
+                Line::from("Adaptables: Media Timer"),
+                Line::from("Run it like clockwork."),
                 Line::from(""),
                 Line::from(
                         "Press ENTER to start."
@@ -178,13 +134,15 @@ impl LandingWidget {
             ])
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true })
+            .bg(NORMAL_ROW_BG)
+            .fg(TEXT_FG_COLOR)
             .render(
                 area,
                 buf
             );
     }
     fn render_center(area: Rect, buf: &mut Buffer) {
-        let title = Line::raw("Media Timer").centered();
+        let title = Line::raw("Adaptables: Media Timer").centered();
         let _length = title.width() * 4;
 
         let block = Block::new()
@@ -193,7 +151,7 @@ impl LandingWidget {
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
             .padding(Padding::uniform(4))
-            .bg(ALT_ROW_BG_COLOR);
+            .bg(NORMAL_ROW_BG);
 
         // render block
         block.render(area, buf);

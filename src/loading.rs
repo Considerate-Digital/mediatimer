@@ -34,6 +34,8 @@ use std::{
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
+    NORMAL_ROW_BG,
+    TEXT_FG_COLOR,
     ALT_ROW_BG_COLOR,
 };
 
@@ -133,7 +135,7 @@ impl LoadingWidget {
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)
             .padding(Padding::uniform(4))
-            .bg(ALT_ROW_BG_COLOR);
+            .bg(NORMAL_ROW_BG);
 
         let _para = Paragraph::new(
             vec![
@@ -146,6 +148,7 @@ impl LoadingWidget {
             .block(block)
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true })
+            .fg(TEXT_FG_COLOR)
             .render(
                 area,
                 buf

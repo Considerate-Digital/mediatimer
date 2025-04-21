@@ -3,6 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{
+        Modifier,
         Style, Stylize,
     },
     symbols,
@@ -133,7 +134,7 @@ impl FileSelectWidget {
             .with_highlight_item_style(SELECTED_STYLE)
             .with_highlight_symbol("> ".into())
             .with_highlight_spacing(HighlightSpacing::Always)
-            .with_dir_style(Style::default().fg(TEXT_DIR_COLOR))
+            .with_dir_style(Style::default().fg(TEXT_DIR_COLOR).add_modifier(Modifier::BOLD))
             .with_highlight_dir_style(SELECTED_STYLE)
             .with_item_style(Style::default().fg(TEXT_FG_COLOR));
         

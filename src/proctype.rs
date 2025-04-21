@@ -91,7 +91,7 @@ impl ProcTypeWidget {
             proc_type_entries: ProcTypeList::from_iter([
                 (ProcType::Media, "A media file. Example files: mp3, wav, mp4, avi, flac etc. Most video and audio formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable."),
+                (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
             ]),
         }
@@ -223,7 +223,7 @@ impl ProcTypeWidget {
 
         // show the list item's info under the list
         let block = Block::new()
-            .title(Line::raw(&title).centered())
+            .title(Line::raw(&title).centered().style(FOOTER_STYLE))
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
             .border_style(ITEM_HEADER_STYLE)

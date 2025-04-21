@@ -986,7 +986,8 @@ impl TimingsWidget {
                 .borders(Borders::TOP | Borders::LEFT)
                 .border_set(symbols::border::EMPTY)
                 .border_style(ITEM_HEADER_STYLE)
-                .bg(NORMAL_ROW_BG);
+                .bg(NORMAL_ROW_BG)
+                .fg(TEXT_FG_COLOR);
             
             // sorting the Timing struct
             self.list_element_entries.list[self.weekday_selected]
@@ -1016,12 +1017,14 @@ impl TimingsWidget {
                 .highlight_style(SELECTED_STYLE)
                 .highlight_symbol("> ")
                 .highlight_spacing(HighlightSpacing::Always);
+
             // we have to diferentiate this "render" from the render fn on self
             StatefulWidget::render(list, area, buf, &mut self.list_element_entries.list[self.weekday_selected].timings.state);
         } else {
             let input = Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
                .style(SELECTED_STYLE)
                .bg(NORMAL_ROW_BG)
+               .fg(TEXT_FG_COLOR)
                .wrap(Wrap { trim:true })
                .block(
                    Block::new()
@@ -1079,7 +1082,7 @@ impl TimingsWidget {
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
        let input = Paragraph::new(self.input.as_str()) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
                Block::bordered()
@@ -1093,7 +1096,7 @@ impl TimingsWidget {
         // set the current input as the entry selected.
 
         let input = Paragraph::new(self.input.as_str()) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
                Block::bordered()
@@ -1142,7 +1145,7 @@ impl TimingsWidget {
         };
 
         let input = Paragraph::new(Line::raw(message)) 
-           .style(SELECTED_STYLE)
+           .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
            .block(
