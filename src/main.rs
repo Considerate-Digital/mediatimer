@@ -60,7 +60,10 @@ use crate::timings::{
 
 #[derive(Debug, Display, PartialEq, AsRefStr)]
 pub enum ProcType {
-    Media,
+    Video,
+    Audio,
+    Image,
+    Slideshow,
     Browser,
     Executable,
 }
@@ -205,17 +208,19 @@ struct Task {
     auto_loop: Autoloop,
     advanced_schedule: AdvancedSchedule,
     timings: Timings,
-    file: PathBuf
+    file: PathBuf,
+    slide_delay: u32,
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32 = 5) -> Self {
         Task {
             proc_type,
             auto_loop,
             advanced_schedule,
             timings,
-            file
+            file,
+            slide_delay,
         }
     }
 }
@@ -245,14 +250,14 @@ fn write_task(task: Task) -> Result<(), IoError> {
             .open(&dir_path)?;
     
        // write proctype
-       let _ = writeln!(file, "ML_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
+       let _ = writeln!(file, "MT_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
-       let _ = writeln!(file, "ML_AUTOLOOP=\"{}\"", match task.auto_loop {
+       let _ = writeln!(file, "MT_AUTOLOOP=\"{}\"", match task.auto_loop {
             Autoloop::Yes => "true",
             Autoloop::No => "false"
         });
-       let _ = writeln!(file, "ML_SCHEDULE=\"{}\"", match task.advanced_schedule {
+       let _ = writeln!(file, "MT_SCHEDULE=\"{}\"", match task.advanced_schedule {
             AdvancedSchedule::Yes => "true",
             AdvancedSchedule::No => "false"
        });
@@ -260,7 +265,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
        // This function should be converted to a closure
        fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
            let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
-           if let Err(e) = writeln!(file, "ML_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
+           if let Err(e) = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
                eprintln!("Could not write to file: {}", e);
            }
        }
@@ -280,7 +285,11 @@ fn write_task(task: Task) -> Result<(), IoError> {
        
 
        // write file
-       let _ = writeln!(file, "ML_FILE=\"{}\"", task.file.display())?;
+       let _ = writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
+
+       // write slide delay
+
+       let _ = writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
 
       } else {
        eprintln!("Could not find home directory.");
@@ -315,6 +324,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // set up the config vars
     let mut file = PathBuf::new();
+    let mut slide_delay: u32 = 5;
     let mut proc_type = ProcType::Media;
     let mut auto_loop = Autoloop::Yes;
     let mut schedule = AdvancedSchedule::No;
@@ -335,30 +345,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         for (key, value) in env::vars() {
             match key.as_str() {
                 // proctype should always be stored and checked lowercase
-                "ML_PROCTYPE" => proc_type = match value.to_lowercase().as_str() {
+                "MT_PROCTYPE" => proc_type = match value.to_lowercase().as_str() {
                     "media" => ProcType::Media,
                     "browser" => ProcType::Browser,
                     "executable" => ProcType::Executable,
                     &_ => ProcType::Media
                 },
-                "ML_AUTOLOOP" => auto_loop = match value.as_str() {
+                "MT_AUTOLOOP" => auto_loop = match value.as_str() {
                     "true" => Autoloop::Yes,
                     "false" => Autoloop::No,
                     &_ => Autoloop::No
                 },
-                "ML_FILE" => file.push(value.as_str()),
-                "ML_SCHEDULE" => schedule = match value.as_str() {
+                "MT_FILE" => file.push(value.as_str()),
+                "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>();
+                "MT_SCHEDULE" => schedule = match value.as_str() {
                     "true" => AdvancedSchedule::Yes,
                     "false" => AdvancedSchedule::No,
                     &_ => AdvancedSchedule::No
                 },
-                "ML_MONDAY" => monday = to_weekday(value, Weekday::Monday(Vec::new()))?,
-                "ML_TUESDAY" => tuesday = to_weekday(value, Weekday::Tuesday(Vec::new()))?,
-                "ML_WEDNESDAY" => wednesday = to_weekday(value, Weekday::Wednesday(Vec::new()))?,
-                "ML_THURSDAY" => thursday = to_weekday(value, Weekday::Thursday(Vec::new()))?,
-                "ML_FRIDAY" => friday = to_weekday(value, Weekday::Friday(Vec::new()))?,
-                "ML_SATURDAY" => saturday = to_weekday(value, Weekday::Saturday(Vec::new()))?,
-                "ML_SUNDAY" => sunday = to_weekday(value, Weekday::Sunday(Vec::new()))?,
+                "MT_MONDAY" => monday = to_weekday(value, Weekday::Monday(Vec::new()))?,
+                "MT_TUESDAY" => tuesday = to_weekday(value, Weekday::Tuesday(Vec::new()))?,
+                "MT_WEDNESDAY" => wednesday = to_weekday(value, Weekday::Wednesday(Vec::new()))?,
+                "MT_THURSDAY" => thursday = to_weekday(value, Weekday::Thursday(Vec::new()))?,
+                "MT_FRIDAY" => friday = to_weekday(value, Weekday::Friday(Vec::new()))?,
+                "MT_SATURDAY" => saturday = to_weekday(value, Weekday::Saturday(Vec::new()))?,
+                "MT_SUNDAY" => sunday = to_weekday(value, Weekday::Sunday(Vec::new()))?,
                 _ => {}
             }
         }

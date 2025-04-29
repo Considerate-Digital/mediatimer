@@ -68,34 +68,42 @@ impl ProcTypeEntry {
     }
 }
 
-impl Default for ProcTypeWidget {
-    fn default() -> Self {
-        Self {
-            should_exit: false,
-            selected_type: ProcType::Media,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Example files: mp3, wav, mp4, avi, flac etc. Most video and audio formats are accepted."),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable."),
-
-            ]),
-        }
-    }
-}
-
 impl ProcTypeWidget {
+
+    #[cfg(feature="v1")]
     pub fn new(preset_type: ProcType) -> Self {
         Self {
             should_exit: false,
             selected_type: preset_type,
             proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Media, "A media file. Example files: mp3, wav, mp4, avi, flac etc. Most video and audio formats are accepted."),
+                (ProcType::Video, "A video file, played without audio. Example files: mp4, avi, mkv etc. Most formats are accepted."),
+                (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
+                (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
+                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
             ]),
         }
     }
+    
+    #[cfg(feature="v2")]
+    pub fn new(preset_type: ProcType) -> Self {
+        Self {
+            should_exit: false,
+            selected_type: preset_type,
+            proc_type_entries: ProcTypeList::from_iter([
+                (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
+                (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
+                (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
+                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted."),
+                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
+                (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
+
+            ]),
+        }
+    }
+
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
         // set default value
         // get the index of the selected item

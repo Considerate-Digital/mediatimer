@@ -810,6 +810,8 @@ impl TimingsWidget {
                 return false;
             } else if start <= t_end && end >= t_end {
                 return false;
+            } else if start >= t_start &&  end <= t_end {
+                return false;
             }
         }
         true
@@ -1487,11 +1489,11 @@ mod tests {
 
         t_widget.current_screen = CurrentScreen::Add;
         t_widget.reverse_state();
-        assert!(t_widget.current_screen == CurrentScreen::Day);
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
 
         t_widget.current_screen = CurrentScreen::Edit;
         t_widget.reverse_state();
-        assert!(t_widget.current_screen == CurrentScreen::Day);
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
 
         t_widget.current_screen = CurrentScreen::Delete;
         t_widget.reverse_state();
@@ -1518,7 +1520,29 @@ mod tests {
     #[test]
     fn check_timing_format_no_clash() {
         let mut t_widget = TimingsWidget::default();
+        // check timing in the middle
         t_widget.input = String::from("11:11:11-12:12:12");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be false because the default timing is 9am-5pm
+        // there is a clash
+        assert_eq!(no_clash, false);
+
+        // check timing that overlaps with start
+        t_widget.input = String::from("08:00:00-11:00:00");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be false because the default timing is 9am-5pm
+        // there is a clash
+        assert_eq!(no_clash, false);
+
+        // check timing that overlaps with start and end
+        t_widget.input = String::from("08:00:00-18:00:00");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be false because the default timing is 9am-5pm
+        // there is a clash
+        assert_eq!(no_clash, false);
+
+        // check timing that overlaps with end
+        t_widget.input = String::from("16:16:54-18:02:24");
         let no_clash = t_widget.timing_format_no_clash();
         // should be false because the default timing is 9am-5pm
         // there is a clash
@@ -1528,6 +1552,13 @@ mod tests {
         let no_clash = t_widget.timing_format_no_clash();
         // should be no clash 
         assert_eq!(no_clash, true);
+
+        t_widget.input = String::from("17:00:01-23:50:00");
+        let no_clash = t_widget.timing_format_no_clash();
+        // should be no clash 
+        assert_eq!(no_clash, true);
+
+_
     }
 
     #[test]

@@ -41,6 +41,7 @@ pub struct FileSelectWidget {
     should_exit: bool,
     file_explorer: FileExplorer,
     selected_file: FileSelect,
+    can_be_dir: bool
 }
 
 type FileSelect = PathBuf;
@@ -51,16 +52,19 @@ impl Default for FileSelectWidget {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: Path::new("./").to_path_buf(),
+            can_be_dir: false,
         }
     }
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf) -> Self {
+    pub fn new(file_path: PathBuf, can_be_dir: bool = false) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
+            can_be_dir: can_be_dir
+
         }
     }
 
@@ -91,9 +95,7 @@ impl FileSelectWidget {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_exit = true;
             }
-            KeyCode::Enter if is_dir == false => {
-                // check that it is not "../" or "./"
-
+            KeyCode::Enter if is_dir == false || self.can_be_dir == true => {
                 self.set_current_type();
                 self.should_exit = true;
             }
