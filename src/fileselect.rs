@@ -97,18 +97,23 @@ impl FileSelectWidget {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_exit = true;
             }
-            KeyCode::Enter if is_dir == false || (self.can_be_dir == true && dir_is_dead_end == true) => {
-                self.set_current_type();
-                self.should_exit = true;
+            KeyCode::Enter if is_dir == false || (is_dir == false && self.can_be_dir == true && dir_is_dead_end == true) => {
+                if self.can_be_dir == true {
+                    //TODO error handling
+                    let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
+                    // remove the file name
+                    current_path_buf.pop();
+                    self.selected_file = current_path_buf;
+                    self.should_exit = true;
+                } else {
+                    self.selected_file = self.file_explorer.current().path().to_path_buf();
+                    self.should_exit = true;
+                }
             }
             _ => {}
         }
     }
     
-    fn set_current_type(&mut self) {
-        self.selected_file = self.file_explorer.current().path().to_path_buf();
-    }
-
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Media Timer Setup")
@@ -191,7 +196,7 @@ impl FileSelectWidget {
                 Line::from("Select a folder using our explorer."),
                 Line::from("The target folder must not contain other folders."),
                 Line::from("Use the arrow keys ⇅ to find the folder you want to use."),
-                Line::from("Press ENTER to select the folder."),
+                Line::from("Press ENTER to open the folder, navigate to one of your images and then press ENTER again."),
                 Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
                 Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
 

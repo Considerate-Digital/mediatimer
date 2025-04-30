@@ -1558,7 +1558,6 @@ mod tests {
         // should be no clash 
         assert_eq!(no_clash, true);
 
-_
     }
 
     #[test]

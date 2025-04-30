@@ -485,7 +485,7 @@ mod tests {
         });
 
         // Create test data
-        let proc_type = ProcType::Media;
+        let proc_type = ProcType::Video;
         let auto_loop = Autoloop::Yes;
         let advanced_schedule = AdvancedSchedule::Yes;
 
@@ -514,7 +514,7 @@ mod tests {
         let file_path = PathBuf::from("/path/to/test/file.mp4");
 
         // Create task
-        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path);
+        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path, 7);
 
         // Write task to file
         write_task(task).expect("Failed to write task");
@@ -533,19 +533,19 @@ mod tests {
         let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
 
         // Verify file contents
-        assert!(lines.contains(&"ML_PROCTYPE=\"media\"".to_string()), "Missing or incorrect process type");
-        assert!(lines.contains(&"ML_AUTOLOOP=\"true\"".to_string()), "Missing or incorrect autoloop setting");
-        assert!(lines.contains(&"ML_SCHEDULE=\"true\"".to_string()), "Missing or incorrect schedule setting");
-        assert!(lines.contains(&"ML_MONDAY=10:00-11:00".to_string()), "Missing or incorrect Monday schedule");
-        assert!(lines.contains(&"ML_FRIDAY=15:30-16:45,18:00-19:30".to_string()), "Missing or incorrect Friday schedule");
-        assert!(lines.contains(&"ML_FILE=\"/path/to/test/file.mp4\"".to_string()), "Missing or incorrect file path");
+        assert!(lines.contains(&"MT_PROCTYPE=\"video\"".to_string()), "Missing or incorrect process type");
+        assert!(lines.contains(&"MT_AUTOLOOP=\"true\"".to_string()), "Missing or incorrect autoloop setting");
+        assert!(lines.contains(&"MT_SCHEDULE=\"true\"".to_string()), "Missing or incorrect schedule setting");
+        assert!(lines.contains(&"MT_MONDAY=10:00-11:00".to_string()), "Missing or incorrect Monday schedule");
+        assert!(lines.contains(&"MT_FRIDAY=15:30-16:45,18:00-19:30".to_string()), "Missing or incorrect Friday schedule");
+        assert!(lines.contains(&"MT_FILE=\"/path/to/test/file.mp4\"".to_string()), "Missing or incorrect file path");
 
         // Verify empty schedules
-        assert!(lines.contains(&"ML_TUESDAY=".to_string()), "Missing Tuesday schedule");
-        assert!(lines.contains(&"ML_WEDNESDAY=".to_string()), "Missing Wednesday schedule");
-        assert!(lines.contains(&"ML_THURSDAY=".to_string()), "Missing Thursday schedule");
-        assert!(lines.contains(&"ML_SATURDAY=".to_string()), "Missing Saturday schedule");
-        assert!(lines.contains(&"ML_SUNDAY=".to_string()), "Missing Sunday schedule");
+        assert!(lines.contains(&"MT_TUESDAY=".to_string()), "Missing Tuesday schedule");
+        assert!(lines.contains(&"MT_WEDNESDAY=".to_string()), "Missing Wednesday schedule");
+        assert!(lines.contains(&"MT_THURSDAY=".to_string()), "Missing Thursday schedule");
+        assert!(lines.contains(&"MT_SATURDAY=".to_string()), "Missing Saturday schedule");
+        assert!(lines.contains(&"MT_SUNDAY=".to_string()), "Missing Sunday schedule");
     }
 
     #[test]
@@ -567,7 +567,7 @@ mod tests {
         let file_path = PathBuf::from("/path/to/browser/page.html");
 
         // Create task
-        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path);
+        let task = Task::new(proc_type, auto_loop, advanced_schedule, timings, file_path, 7);
 
         // Write task to file
         write_task(task).expect("Failed to write task");
@@ -582,14 +582,14 @@ mod tests {
         let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
 
         // Verify file contents
-        assert!(lines.contains(&"ML_PROCTYPE=\"browser\"".to_string()), "Missing or incorrect process type");
-        assert!(lines.contains(&"ML_AUTOLOOP=\"false\"".to_string()), "Missing or incorrect autoloop setting");
-        assert!(lines.contains(&"ML_SCHEDULE=\"false\"".to_string()), "Missing or incorrect schedule setting");
-        assert!(lines.contains(&"ML_FILE=\"/path/to/browser/page.html\"".to_string()), "Missing or incorrect file path");
+        assert!(lines.contains(&"MT_PROCTYPE=\"browser\"".to_string()), "Missing or incorrect process type");
+        assert!(lines.contains(&"MT_AUTOLOOP=\"false\"".to_string()), "Missing or incorrect autoloop setting");
+        assert!(lines.contains(&"MT_SCHEDULE=\"false\"".to_string()), "Missing or incorrect schedule setting");
+        assert!(lines.contains(&"MT_FILE=\"/path/to/browser/page.html\"".to_string()), "Missing or incorrect file path");
 
         // Verify empty schedules are still written
         for day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] {
-            assert!(lines.contains(&format!("ML_{}=", day)), "Missing {} schedule", day);
+            assert!(lines.contains(&format!("MT_{}=", day)), "Missing {} schedule", day);
         }
     }
 }
