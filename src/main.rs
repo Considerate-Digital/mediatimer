@@ -213,7 +213,7 @@ struct Task {
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32 = 5) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32) -> Self {
         Task {
             proc_type,
             auto_loop,
@@ -325,7 +325,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // set up the config vars
     let mut file = PathBuf::new();
     let mut slide_delay: u32 = 5;
-    let mut proc_type = ProcType::Media;
+    let mut proc_type = ProcType::Video;
     let mut auto_loop = Autoloop::Yes;
     let mut schedule = AdvancedSchedule::No;
     let mut timings: Timings = Vec::with_capacity(7);
@@ -346,10 +346,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             match key.as_str() {
                 // proctype should always be stored and checked lowercase
                 "MT_PROCTYPE" => proc_type = match value.to_lowercase().as_str() {
-                    "media" => ProcType::Media,
+                    "video" => ProcType::Video,
+                    "audio" => ProcType::Audio,
+                    "image" => ProcType::Image,
+                    "slideshow" => ProcType::Slideshow,
                     "browser" => ProcType::Browser,
                     "executable" => ProcType::Executable,
-                    &_ => ProcType::Media
+                    &_ => ProcType::Video
                 },
                 "MT_AUTOLOOP" => auto_loop = match value.as_str() {
                     "true" => Autoloop::Yes,
@@ -357,7 +360,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &_ => Autoloop::No
                 },
                 "MT_FILE" => file.push(value.as_str()),
-                "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>();
+                "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>().unwrap(),
                 "MT_SCHEDULE" => schedule = match value.as_str() {
                     "true" => AdvancedSchedule::Yes,
                     "false" => AdvancedSchedule::No,
@@ -386,11 +389,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = ratatui::init();
 
     let _landing = LandingWidget::default().run(&mut terminal)?;
-    // returns Ok(ProcType) e.g. Ok(ProcType::Media)
+    // returns Ok(ProcType) e.g. Ok(ProcType::Video)
+    
     let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
+    let can_be_dir: bool = match &proctype {
+        ProcType::Slideshow => true,
+        _ => false
+    };
 
     // return Ok(FileSelectType)
-    let file_path = FileSelectWidget::new(file).run(&mut terminal)?;
+    let file_path = FileSelectWidget::new(file, can_be_dir).run(&mut terminal)?;
     
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
@@ -399,13 +407,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         timings = TimingsWidget::new(timings).run(&mut terminal)?;
     }
     
+    let is_media_type: bool = match &proctype {
+        ProcType::Video => true,
+        ProcType::Audio => true,
+        _ => false
+    };
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
-    if proctype == ProcType::Media && advanced_schedule == AdvancedSchedule::Yes {
+    if is_media_type && advanced_schedule == AdvancedSchedule::Yes {
         auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
-    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file_path);
+    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file_path, slide_delay);
 
-    // write a function that writes the task to a specific env file
     // write_task 
     if let Err(e) = write_task(task) {
         eprintln!("Error writing tasks to env file: {}", e);

@@ -79,7 +79,7 @@ impl ProcTypeWidget {
                 (ProcType::Video, "A video file, played without audio. Example files: mp4, avi, mkv etc. Most formats are accepted."),
                 (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
                 (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
-                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted."),
+                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
@@ -96,7 +96,7 @@ impl ProcTypeWidget {
                 (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
                 (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
                 (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
-                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted."),
+                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
@@ -143,7 +143,10 @@ impl ProcTypeWidget {
     fn set_current_type(&mut self) {
         if let Some(i) = self.proc_type_entries.state.selected() {
             match self.proc_type_entries.list[i].proc_type {
-                ProcType::Media => self.selected_type = ProcType::Media,
+                ProcType::Video => self.selected_type = ProcType::Video,
+                ProcType::Audio => self.selected_type = ProcType::Audio,
+                ProcType::Image => self.selected_type = ProcType::Image,
+                ProcType::Slideshow => self.selected_type = ProcType::Slideshow,
                 ProcType::Browser => self.selected_type = ProcType::Browser,
                 ProcType::Executable => self.selected_type = ProcType::Executable,
             }
@@ -216,9 +219,12 @@ impl ProcTypeWidget {
         // get the info
         let (info, mut title) = if let Some(i) = self.proc_type_entries.state.selected() {
             let pt_str = match self.proc_type_entries.list[i].proc_type {
-                ProcType::Media => ProcType::Media.as_ref(),
+                ProcType::Video => ProcType::Video.as_ref(),
+                ProcType::Audio => ProcType::Audio.as_ref(),
+                ProcType::Image => ProcType::Image.as_ref(),
+                ProcType::Slideshow => ProcType::Slideshow.as_ref(),
                 ProcType::Browser => ProcType::Browser.as_ref(),
-                ProcType::Executable => ProcType::Executable.as_ref()
+                ProcType::Executable => ProcType::Executable.as_ref(),
             };
             let title_str = String::from(pt_str.to_uppercase());
                 (self.proc_type_entries.list[i].info.clone(), title_str)

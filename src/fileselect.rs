@@ -58,7 +58,7 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf, can_be_dir: bool = false) -> Self {
+    pub fn new(file_path: PathBuf, can_be_dir: bool) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
@@ -91,11 +91,13 @@ impl FileSelectWidget {
             return;
         }
         let is_dir = self.file_explorer.current().is_dir();
+        let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
+        let dir_is_dead_end = dirs_in_current.len() < 2; 
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_exit = true;
             }
-            KeyCode::Enter if is_dir == false || self.can_be_dir == true => {
+            KeyCode::Enter if is_dir == false || (self.can_be_dir == true && dir_is_dead_end == true) => {
                 self.set_current_type();
                 self.should_exit = true;
             }
@@ -181,15 +183,30 @@ impl FileSelectWidget {
     }
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
-        // get the info
-        let text = vec![ 
-            Line::from("Select a file using our file explorer."),
-            Line::from("Use the arrow keys ⇅ to find the file you want to use."),
-            Line::from("Press ENTER to select the file."),
-            Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
-            Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
 
-        ];
+        let mut text = Vec::with_capacity(10);
+    
+        if self.can_be_dir == true {
+            text = vec![ 
+                Line::from("Select a folder using our explorer."),
+                Line::from("The target folder must not contain other folders."),
+                Line::from("Use the arrow keys ⇅ to find the folder you want to use."),
+                Line::from("Press ENTER to select the folder."),
+                Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
+                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
+
+            ];
+
+        } else {
+            text = vec![ 
+                Line::from("Select a file using our file explorer."),
+                Line::from("Use the arrow keys ⇅ to find the file you want to use."),
+                Line::from("Press ENTER to select the file."),
+                Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
+                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
+
+            ];
+        }
 
         // show the list item's info under the list
         let block = Block::new()
