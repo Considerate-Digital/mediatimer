@@ -5,10 +5,18 @@ use ratatui::{
     },
 };
 
+// #ffd6ff
 const PINK: Color = Color::Rgb(255, 214, 255);
+// #ffdcff
 const PINK_LIGHT: Color = Color::Rgb(255, 220, 255);
+// #ffe6ff
 const PINK_SELECTED: Color = Color::Rgb(255, 230, 255);
+// #0f2830
 const BLUE: Color = Color::Rgb(15, 40, 48);
+// #12303a
+const BLUE_LIGHT: Color = Color::Rgb(18, 48, 58);
+// #173742
+const BLUE_LIGHTEST: Color = Color::Rgb(23, 55, 66);
 const BLUE_ALT: Color = Color::Rgb(32, 61, 71);
 const GREEN: Color = Color::Rgb(4, 211, 126);
 
