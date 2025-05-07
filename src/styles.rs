@@ -5,9 +5,9 @@ use ratatui::{
     },
 };
 
-const PINK: Color = Color::Rgb(255, 214, 228);
-const PINK_LIGHT: Color = Color::Rgb(255, 219, 230);
-const PINK_SELECTED: Color = Color::Rgb(255, 229, 237);
+const PINK: Color = Color::Rgb(255, 214, 255);
+const PINK_LIGHT: Color = Color::Rgb(255, 220, 255);
+const PINK_SELECTED: Color = Color::Rgb(255, 230, 255);
 const BLUE: Color = Color::Rgb(15, 40, 48);
 const BLUE_ALT: Color = Color::Rgb(32, 61, 71);
 const GREEN: Color = Color::Rgb(4, 211, 126);
