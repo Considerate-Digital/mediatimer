@@ -70,7 +70,7 @@ impl ProcTypeEntry {
 
 impl ProcTypeWidget {
 
-    #[cfg(feature="v1")]
+    #[cfg(feature="eco")]
     pub fn new(preset_type: ProcType) -> Self {
         Self {
             should_exit: false,
@@ -87,7 +87,7 @@ impl ProcTypeWidget {
         }
     }
     
-    #[cfg(feature="v2")]
+    #[cfg(feature="standard")]
     pub fn new(preset_type: ProcType) -> Self {
         Self {
             should_exit: false,

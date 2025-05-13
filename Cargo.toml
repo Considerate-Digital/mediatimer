@@ -23,5 +23,6 @@ whoami = "1.5.2"
 tempfile = "3.19.1"
 
 [features]
-v1 = []
-v2 = []
+eco = []
+standard = []
+pro = []
