@@ -127,6 +127,16 @@ impl FileSelectWidget {
     // check for video size
     #[cfg(feature="eco")]
     fn video_compatible() -> bool {
+        let file_path = self.file_explorer.current().path();
+        let _vid_width = Command::new("ffprobe")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-show_streams")
+            .arg("-fs")
+            .arg("-loop")
+            .arg("-1")
+            .arg(&file_path)
+            .expect("width in pixels")
 
     }
 
