@@ -58,7 +58,7 @@ use crate::timings::{
     TimingsWidget
 };
 
-#[derive(Debug, Display, PartialEq, AsRefStr)]
+#[derive(Debug, Display, PartialEq, AsRefStr, Clone)]
 pub enum ProcType {
     Video,
     Audio,

@@ -36,6 +36,7 @@ use crate::styles::{
 
 use crate::mount::identify_mounted_drives;
 
+use crate::ProcType;
 
 pub struct FileSelectWidget {
     should_exit: bool,
@@ -58,13 +59,13 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf, can_be_dir: bool) -> Self {
+    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
-            can_be_dir: can_be_dir
-
+            can_be_dir: can_be_dir,
+            proc_type: proc_type
         }
     }
 
@@ -106,14 +107,30 @@ impl FileSelectWidget {
                     self.selected_file = current_path_buf;
                     self.should_exit = true;
                 } else {
-                    self.selected_file = self.file_explorer.current().path().to_path_buf();
-                    self.should_exit = true;
+                    if self.proc_type == Proctype::Video {
+                        if video_compatible() {
+                            self.selected_file = self.file_explorer.current().path().to_path_buf();
+                            self.should_exit = true;
+                        } else {
+                            //TODO show error
+                        }
+                    } else {
+                        self.selected_file = self.file_explorer.current().path().to_path_buf();
+                        self.should_exit = true;
+                    }
                 }
             }
             _ => {}
         }
     }
-    
+        
+    // check for video size
+    #[cfg(feature="eco")]
+    fn video_compatible() -> bool {
+
+    }
+
+
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Media Timer Setup")
