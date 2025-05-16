@@ -20,7 +20,8 @@ use std::{
     PathBuf,
     Path
     },
-    fs::File
+    fs::File,
+    process::Command
 };
 
 use ratatui_explorer::{FileExplorer, Theme};
@@ -38,11 +39,16 @@ use crate::mount::identify_mounted_drives;
 
 use crate::ProcType;
 
+use regex::Regex;
+
 pub struct FileSelectWidget {
     should_exit: bool,
     file_explorer: FileExplorer,
     selected_file: FileSelect,
-    can_be_dir: bool
+    can_be_dir: bool,
+    proc_type: ProcType,
+    error: bool,
+    error_message: String
 }
 
 type FileSelect = PathBuf;
@@ -54,6 +60,9 @@ impl Default for FileSelectWidget {
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: Path::new("./").to_path_buf(),
             can_be_dir: false,
+            proc_type: ProcType::Video,
+            error: false,
+            error_message: String::from("")
         }
     }
 }
@@ -65,7 +74,9 @@ impl FileSelectWidget {
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
             can_be_dir: can_be_dir,
-            proc_type: proc_type
+            proc_type: proc_type,
+            error: false,
+            error_message: String::from("")
         }
     }
 
@@ -99,20 +110,18 @@ impl FileSelectWidget {
                 self.should_exit = true;
             }
             KeyCode::Enter if is_dir == false || (is_dir == false && self.can_be_dir == true && dir_is_dead_end == true) => {
-                if self.can_be_dir == true {
-                    //TODO error handling
+                if self.error {
+                    self.error = false;
+                } else if self.can_be_dir == true {
                     let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
-                    // remove the file name
                     current_path_buf.pop();
                     self.selected_file = current_path_buf;
                     self.should_exit = true;
                 } else {
-                    if self.proc_type == Proctype::Video {
-                        if video_compatible() {
+                    if self.proc_type == ProcType::Video {
+                        if self.video_compatible() {
                             self.selected_file = self.file_explorer.current().path().to_path_buf();
                             self.should_exit = true;
-                        } else {
-                            //TODO show error
                         }
                     } else {
                         self.selected_file = self.file_explorer.current().path().to_path_buf();
@@ -126,18 +135,35 @@ impl FileSelectWidget {
         
     // check for video size
     #[cfg(feature="eco")]
-    fn video_compatible() -> bool {
+    fn video_compatible(&mut self) -> bool {
         let file_path = self.file_explorer.current().path();
-        let _vid_width = Command::new("ffprobe")
+        let vid_height = Command::new("ffprobe")
             .arg("-loglevel")
             .arg("error")
             .arg("-show_streams")
-            .arg("-fs")
-            .arg("-loop")
-            .arg("-1")
             .arg(&file_path)
-            .expect("width in pixels")
+            .output()
+            .expect("height in pixels");
 
+        let height_string = String::from_utf8_lossy(&vid_height.stdout);
+        let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
+        if let Some(height_info) = height_re.captures(&height_string) {
+            if let height_collected = height_info[1].to_string() {
+                let height_int: u32 = height_collected.parse::<u32>().unwrap();
+                if height_int > 720 {
+                    self.error_message = format!("Video resolution is too high ({}). Export video as 720p maximum.", height_int);
+                    self.error = true;
+                    return false;
+                } else {
+                    return true;
+                }
+                
+            }
+        } else {
+            self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
+            self.error = true;
+        }
+        return false;
     }
 
 
@@ -154,6 +180,33 @@ impl FileSelectWidget {
             .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
+    }
+
+    fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+        let popup_area = Rect {
+            x: area.width / 4,
+            y: area.height / 3,
+            width: area.width / 2,
+            height: area.height / 3,
+        };
+        let background = Paragraph::new(Line::raw(""))
+            .bg(NORMAL_ROW_BG)
+            .block(
+                Block::new()
+            )
+            .render(area, buf);
+
+        let input = Paragraph::new(Line::raw(&self.error_message)) 
+           .fg(TEXT_FG_COLOR)
+           .bg(NORMAL_ROW_BG)
+           .wrap(Wrap {trim:false})
+           .block(
+               Block::bordered()
+               .style(ITEM_HEADER_STYLE)
+               .title(Line::raw("ERROR").centered())
+           )
+           .render(popup_area, buf);
     }
 
     fn style_file_explorer(&mut self) {
@@ -259,8 +312,10 @@ impl FileSelectWidget {
 
 }
 
+
 impl Widget for &mut FileSelectWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
@@ -276,8 +331,15 @@ impl Widget for &mut FileSelectWidget {
 
         FileSelectWidget::render_header(header_area, buf);
         FileSelectWidget::render_footer(footer_area, buf);
-        self.render_file_explorer(file_area, buf);
-        self.render_selected_item(item_area, buf);
+
+        if self.error == true {
+            self.render_error(main_area, buf);
+        } else {
+            self.render_file_explorer(file_area, buf);
+            self.render_selected_item(item_area, buf);
+        }
+
+
     }
 
 }

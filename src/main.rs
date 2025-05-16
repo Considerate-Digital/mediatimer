@@ -398,7 +398,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // return Ok(FileSelectType)
-    let file_path = FileSelectWidget::new(file, can_be_dir).run(&mut terminal)?;
+    let proctype_clone = proctype.clone();
+    let file_path = FileSelectWidget::new(file, can_be_dir, proctype_clone).run(&mut terminal)?;
     
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
