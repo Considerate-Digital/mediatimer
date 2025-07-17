@@ -11,7 +11,7 @@ dotenvy = "0.15.7"
 home = "0.5.9"
 indoc = "2.0.5"
 ratatui = "0.29.0"
-ratatui-explorer = {version = "0.1.4", path = "/home/alex/ratatui-explorer"}
+ratatui-explorer = {version = "0.1.4", git ="https://github.com/Considerate-Digital/ratatui-explorer.git"}
 #git ="https://github.com/Considerate-Digital/ratatui-explorer.git"}
 #path = "/home/alex/ratatui-explorer"}
 regex = "1.11.1"
