@@ -306,17 +306,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    // issue command to pause mediatimer_init
-    // systemctl --user stop mediatimer_init.service
-    let _stop_mediatimer_init = Command::new("systemctl")
-        .arg("--user")
-        .arg("stop")
-        .arg("mediatimer_init.service")
-        .output()
-        .expect("Media Timer not restarted");
-
-
-    // Find and load any existing config for the user
+        // Find and load any existing config for the user
     // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
@@ -380,6 +370,43 @@ fn main() -> Result<(), Box<dyn Error>> {
         timings = vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday]; 
     }
 
+    if proc_type == ProcType::Audio {
+        // issue command to pause mediatimer_init
+        // systemctl --user stop mediatimer_init.service
+        let _stop_mediatimer_init = Command::new("systemctl")
+            .arg("--user")
+            .arg("stop")
+            .arg("mediatimer_init_virtual_display.service")
+            .output()
+            .expect("Media Timer not restarted");
+
+        let _disable_mediatimer_init = Command::new("systemctl")
+            .arg("--user")
+            .arg("disable")
+            .arg("mediatimer_init_virtual_display.service")
+            .output()
+            .expect("Media Timer not restarted");
+
+
+    } else {
+        // issue command to pause mediatimer_init
+        // systemctl --user stop mediatimer_init.service
+        let _stop_mediatimer_init = Command::new("systemctl")
+            .arg("--user")
+            .arg("stop")
+            .arg("mediatimer_init.service")
+            .output()
+            .expect("Media Timer not restarted");
+
+        let _stop_mediatimer_init = Command::new("systemctl")
+            .arg("--user")
+            .arg("disable")
+            .arg("mediatimer_init.service")
+            .output()
+            .expect("Media Timer not restarted");
+
+    }
+
     let timings_clone = timings.clone();
 
     enable_raw_mode()?;
@@ -391,7 +418,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _landing = LandingWidget::default().run(&mut terminal)?;
     // returns Ok(ProcType) e.g. Ok(ProcType::Video)
     
-    let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
+    let proctype_clone = proc_type.clone();
+    let proctype = ProcTypeWidget::new(proctype_clone).run(&mut terminal)?;
     let can_be_dir: bool = match &proctype {
         ProcType::Slideshow => true,
         _ => false
@@ -417,7 +445,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     if is_media_type && advanced_schedule == AdvancedSchedule::Yes {
         auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
-    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file_path, slide_delay);
+    let proctype_clone_2 = proctype.clone();
+    let task = Task::new(proctype_clone_2, auto_loop, advanced_schedule, timings, file_path, slide_delay);
 
     // write_task 
     if let Err(e) = write_task(task) {
@@ -425,7 +454,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     
     // loading issues the command to enable the mediatimer_init service
-    let _loading = LoadingWidget::default().run(&mut terminal)?;
+    let _loading = LoadingWidget::new(proc_type, String::from("")).run(&mut terminal)?;
 
     disable_raw_mode()?;
     execute!(

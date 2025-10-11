@@ -554,6 +554,7 @@ dependencies = [
 [[package]]
 name = "ratatui-explorer"
 version = "0.1.4"
+source = "git+https://github.com/Considerate-Digital/ratatui-explorer.git#b8e8adb524bfd79a3305fd95fbfb92566ca4aa6e"
 dependencies = [
  "crossterm",
  "educe",

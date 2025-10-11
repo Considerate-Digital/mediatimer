@@ -43,26 +43,31 @@ use crate::areas::{
     popup_area
 };
 
+use crate::ProcType;
 
 pub struct LoadingWidget {
     command: String,
+    proc_type: ProcType,
     child_threads: Arc<Mutex<Vec<process::Child>>>,
     should_exit: Arc<AtomicBool>,
 }
-
+/*
 impl Default for LoadingWidget {
-    fn default() -> Self {
+    fn default(proc_type: ProcType) -> Self {
         Self {
+            proc_type: proc_type,
             command: String::from(""),
             child_threads: Arc::new(Mutex::new(Vec::new())),
             should_exit: Arc::new(AtomicBool::new(false))
         }
     }
 }
+*/
 
 impl LoadingWidget {
-    pub fn new(mut self, command: String) -> Self {
-        Self {
+    pub fn new(proc_type: ProcType, command: String) -> Self {
+        LoadingWidget {
+            proc_type: proc_type,
             command,
             child_threads: Arc::new(Mutex::new(Vec::new())),
             should_exit: Arc::new(AtomicBool::new(false))
@@ -71,7 +76,8 @@ impl LoadingWidget {
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<(), Box< dyn Error>> {
         // set the command going
         let should_exit_clone = Arc::clone(&self.should_exit);
-        self.run_command(should_exit_clone);
+        let proc_type_clone = self.proc_type.clone();
+        self.run_command(proc_type_clone, should_exit_clone);
         while self.should_exit.load(Ordering::Relaxed) == false {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
@@ -82,8 +88,9 @@ impl LoadingWidget {
     }
 
 
-    fn run_command(&self, should_exit: Arc<AtomicBool>) {
+    fn run_command(&self, proc_type: ProcType, should_exit: Arc<AtomicBool>) {
         thread::spawn(move|| {
+            /*
             let _enable_mediatimer_init = Command::new("systemctl")
                 .arg("--user")
                 .arg("start")
@@ -91,6 +98,42 @@ impl LoadingWidget {
                 .output()
                 .expect("Media Timer not restarted");
 
+            */
+            if proc_type == ProcType::Audio {
+                // issue command to pause mediatimer_init
+                // systemctl --user stop mediatimer_init.service
+                let _start_mediatimer_init_virtual_display = Command::new("systemctl")
+                    .arg("--user")
+                    .arg("enable")
+                    .arg("mediatimer_init_virtual_display.service")
+                    .output()
+                    .expect("Media Timer not restarted");
+
+
+                let _start_mediatimer_init_virtual_display = Command::new("systemctl")
+                    .arg("--user")
+                    .arg("start")
+                    .arg("mediatimer_init_virtual_display.service")
+                    .output()
+                    .expect("Media Timer not restarted");
+
+            } else {
+                // issue command to pause mediatimer_init
+                // systemctl --user stop mediatimer_init.service
+                let _stop_mediatimer_init = Command::new("systemctl")
+                    .arg("--user")
+                    .arg("enable")
+                    .arg("mediatimer_init.service")
+                    .output()
+                    .expect("Media Timer not restarted");
+
+                let _stop_mediatimer_init = Command::new("systemctl")
+                    .arg("--user")
+                    .arg("start")
+                    .arg("mediatimer_init.service")
+                    .output()
+                    .expect("Media Timer not restarted");
+            }
             should_exit.store(true, Ordering::Relaxed);
         });
     }
