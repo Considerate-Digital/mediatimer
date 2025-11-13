@@ -217,7 +217,7 @@ impl FileSelectWidget {
             if let height_collected = height_info[1].to_string() {
                 let height_int: u32 = height_collected.parse::<u32>().unwrap();
                 if height_int > 2160 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 4k maximum.", height_int);
+                    self.error_message = format!("Video resolution is too high ({}). Export video as 4K maximum.", height_int);
                     self.error = true;
                     return false;
                 } else {
