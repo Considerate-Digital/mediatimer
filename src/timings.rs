@@ -132,6 +132,7 @@ enum CurrentScreen {
     Edit,
     Delete,
     Duplicate,
+    DuplicateDay,
     Error,
     Exit
 }
@@ -301,13 +302,82 @@ impl DuplicateOpList {
         }
     }
 }
-
 impl From<&DuplicateOpItem> for ListItem<'_> {
     fn from(value: &DuplicateOpItem) -> Self {
         let line = Line::styled(format!("{}", value.item.as_desc()), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
+
+
+// Copy / duplicate day options submenu
+enum DuplicateDayOpItem {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday
+}
+
+impl DuplicateDayOpItem {
+    fn as_desc(&self) -> &'static str {
+        match {
+            DuplicateDayOpItem::Monday => "Monday",
+            DuplicateDayOpItem::Tuesday => "Tuesday",
+            DuplicateDayOpItem::Wednesday => "Wednesday",
+            DuplicateDayOpItem::Thursday => "Thursday",
+            DuplicateDayOpItem::Friday => "Friday",
+            DuplicateDayOpItem::Saturday => "Saturday",
+            DuplicateDayOpItem::Sunday => "Sunday",
+        }
+    }
+    fn as_int(&self) -> u32 {
+        match {
+            DuplicateDayOpItem::Monday => 0,
+            DuplicateDayOpItem::Tuesday => 1,
+            DuplicateDayOpItem::Wednesday => 2,
+            DuplicateDayOpItem::Thursday => 3, 
+            DuplicateDayOpItem::Friday => 4,
+            DuplicateDayOpItem::Saturday => 5,
+            DuplicateDayOpItem::Sunday => 6
+        }
+    }
+}
+
+struct DuplicateDayOpList {
+    duplicate_day_list: Vec<DuplicateDayOpItem>,
+    state: ListState
+}
+
+impl DuplicateDayOpList {
+    fn default() -> DuplicateDayOpList {
+        let mut state = ListState::default();
+        state.select_first();
+        DuplicateDayOpList {
+            duplicate_day_list: vec![
+                DuplicateDayOpItem::Monday,
+                DuplicateDayOpItem::Tuesday,
+                DuplicateDayOpItem::Wednesday,
+                DuplicateDayOpItem::Thursday,
+                DuplicateDayOpItem::Friday,
+                DuplicateDayOpItem::Saturday,
+                DuplicateDayOpItem::Sunday,
+            ],
+            state
+        }
+    }
+}
+
+impl From<&DuplicateDayOpItem> for ListItem<'_> {
+    fn from(value: &DuplicateDayOpItem) -> Self {
+        let line = Line::styled(format!("{}", value.item.as_desc()), TEXT_FG_COLOR);
+        ListItem::new(line)
+    }
+}
+
+
 
 // Delete options submenu
 struct DelOpItem {
@@ -393,6 +463,7 @@ pub struct TimingsWidget {
     input_area: Rect,
     del_op_list: DelOpList,
     duplicate_op_list: DuplicateOpList,
+    duplicate_day_op_list: DuplicateDayOpList,
     exit_list: ExitList,
     error_type: ErrorType,
     list_element_entries: TimingsList,
@@ -795,9 +866,48 @@ impl TimingsWidget {
 
                             //match the op statement and switch current screen
 
-                                
+                            match op {
+                                DuplicateOpItem::Day => self.current_screen = CurrentScreen::DuplicateDay,
+                                DuplicateOpItem::Weekdays => self.duplicate_schedule_to_weekdays(),
+                                DuplicateOpItem::All => self.duplicate_schedule_to_all_days()
                             }
+                        }
+                    }
+                }
+            },
+            CurrentScreen::DuplicateDay => {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
+                    KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
+                    KeyCode::Char('g') | KeyCode::Home => self.select_first(),
+                    KeyCode::Char('G') | KeyCode::End => self.select_last(),
+                    KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
+                        if let Some(i) = self.duplicate_day_op_list.state.selected() {
+                            let op = match i {
+                                0 => DuplicateDayOpItem::Monday,
+                                1 => DuplicateDayOpItem::Tuesday,
+                                2 => DuplicateDayOpItem::Wednesday,
+                                3 => DuplicateDayOpItem::Thursday,
+                                4 => DuplicateDayOpItem::Friday,
+                                5 => DuplicateDayOpItem::Saturday,
+                                6 => DuplicateDayOpItem::Sunday,
+                                _ => DuplicateDayOpItem::Monday
+                            };
 
+                            match op {
+                                DuplicateDayOpItem::Monday => duplicate_day_schedule(DuplicateDayOpItem::Monday),
+                                DuplicateDayOpItem::Tuesday => duplicate_day_schedule(DuplicateDayOpItem::Tuesday), 
+                                DuplicateDayOpItem::Wednesday => duplicate_day_schedule(DuplicateDayOpItem::Wednesday),
+                                DuplicateDayOpItem::Thursday => duplicate_day_schedule(DuplicateDayOpItem::Thursday),
+                                DuplicateDayOpItem::Friday => duplicate_day_schedule(DuplicateDayOpItem::Friday),
+                                DuplicateDayOpItem::Saturday => duplicate_day_schedule(DuplicateDayOpItem::Saturday),
+                                DuplicateDayOpItem::Sunday => duplicate_day_schedule(DuplicateDayOpItem::Sunday)
+                
+                        }
+                    }
+                }
+            },
             CurrentScreen::Error => {
                 // use any key press to leave error screen
                 match self.previous_screen {
@@ -910,6 +1020,8 @@ impl TimingsWidget {
             CurrentScreen::TimingOptions => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Add => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Edit => self.current_screen = CurrentScreen::TimingOptions,
+            CurrentScreen::Duplicate => self.current_screen = CurrentScreen::TimingOptions,
+            CurrentScreen::DuplicateDay => self.current_screen = CurrentScreen::Duplicate,
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Error => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
@@ -958,6 +1070,30 @@ impl TimingsWidget {
             CurrentScreen::Delete => self.del_op_list.state.select_last(),
             CurrentScreen::Exit => self.exit_list.state.select_last(),
             _ => {}
+        }
+    }
+
+    fn duplicate_day_schedule(&mut self, target_day: DuplicateDayOpItem) {
+        // copies the current day schedule to the target day
+        let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
+        self.list_element_entries[target_day.as_int()].timings = current_weekday_schedule;
+    }
+
+    fn duplicate_schedule_to_weekdays(&mut self) {
+        for entry, i in self.list_element_entries_list.iter().enumerate() {
+            if i < 6 {
+                let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
+                
+                self.list_element_entries[i].timings = current_weekday_schedule;
+            }
+        }
+    }
+
+    fn duplicate_schedule_to_all_days(&mut self) {
+        for entry, i in self.list_element_entries_list.iter().enumerate() {
+            let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
+                
+            self.list_element_entries[i].timings = current_weekday_schedule;
         }
     }
 
