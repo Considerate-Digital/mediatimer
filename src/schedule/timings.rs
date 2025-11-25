@@ -24,10 +24,15 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
 };
 
-use std::error::Error;
-use std::process;
-use std::fmt;
-use std::path::PathBuf;
+use std::{
+    path::{
+        PathBuf,
+        Path
+    },
+    fmt,
+    error::Error,
+    process
+};
 use crate::Timings;
 use crate::Weekday as CommonWeekday;
 use crate::Schedule as CommonSchedule;
@@ -41,15 +46,18 @@ use crate::styles::{
     ALT_ROW_BG_COLOR,
     SELECTED_STYLE,
     TEXT_FG_COLOR,
+    TEXT_DIR_COLOR,
     FOOTER_STYLE
 };
 
 use crate::schedule::{
     export,
-    import,
-    fileselect::FileSelectWidget
+    import
 };
 
+use crate::mount::identify_mounted_drives;
+type FileSelect = PathBuf;
+use ratatui_explorer::{FileExplorer, Theme};
 // This is declared twice due to the TUI list structure requirements and must be converted 
 // between main and this module
 #[derive(Display, Debug)]
@@ -151,6 +159,7 @@ enum CurrentScreen {
     Duplicate,
     DuplicateDay,
     Import,
+    Message,
     Export,
     Error,
     Exit
@@ -224,6 +233,7 @@ enum TimingOp {
     Edit,
     Duplicate,
     Import,
+    Message,
     Export,
     Exit
 }
@@ -476,6 +486,8 @@ enum ErrorType {
 
 
 pub struct TimingsWidget {
+    file_explorer: FileExplorer,
+    selected_file: FileSelect,
     should_exit: bool,
     current_screen: CurrentScreen,
     previous_screen: CurrentScreen,
@@ -551,6 +563,8 @@ impl Default for TimingsWidget {
     fn default() -> Self {
         let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
         Self {
+            file_explorer: FileExplorer::new().unwrap(),
+            selected_file: Path::new("./").to_path_buf(), 
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
             previous_screen: CurrentScreen::Weekdays,
@@ -622,6 +636,8 @@ impl TimingsWidget {
 
 
         Self {
+            file_explorer: FileExplorer::new().unwrap(),
+            selected_file: Path::new("./").to_path_buf(),
             should_exit: false,
             current_screen: CurrentScreen::Weekdays,
             previous_screen: CurrentScreen::Weekdays,
@@ -643,6 +659,9 @@ impl TimingsWidget {
     }
     pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
 
+        self.setup_file_explorer();
+        self.style_file_explorer();
+
         while !self.should_exit {
             terminal.draw(|f| {
                 f.render_widget(&mut self, f.area());
@@ -658,11 +677,73 @@ impl TimingsWidget {
                 }
             })?;
             if let Event::Key(key) = event::read()? {
-                self.handle_key(key);
-                //self.text_area.input(key);
+                match self.current_screen {
+                    CurrentScreen::Import => {
+                        if let input = event::read()? {
+                            self.file_explorer.handle(&input);
+                        }
+                    },
+                    _ => {
+                        self.handle_key(key);
+                        //self.text_area.input(key);
+                    }
+                }
+
             };
         }
         Ok(self.schedule)
+    }
+    fn style_file_explorer(&mut self) {
+        let theme = Theme::default()
+            .add_default_title()
+            .with_block(Block::default()
+                .title(Line::raw("Select File").centered())
+                .borders(Borders::TOP)
+                .border_set(symbols::border::EMPTY)
+                .border_style(ITEM_HEADER_STYLE)
+                .bg(NORMAL_ROW_BG)
+                .padding(Padding::horizontal(1))
+                )
+            .with_highlight_item_style(SELECTED_STYLE)
+            .with_highlight_symbol("> ".into())
+            .with_highlight_spacing(HighlightSpacing::Always)
+            .with_dir_style(Style::default().fg(TEXT_DIR_COLOR).add_modifier(Modifier::BOLD))
+            .with_highlight_dir_style(SELECTED_STYLE)
+            .with_item_style(Style::default().fg(TEXT_FG_COLOR));
+        
+        self.file_explorer.set_theme(theme)
+    }
+    fn setup_file_explorer(&mut self) {
+        let mounted_drives = identify_mounted_drives();
+        let username = whoami::username();
+
+        if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
+            if let Some(parent_dir) = self.selected_file.parent() {
+                self.file_explorer.set_cwd(&parent_dir).unwrap();
+                // then highlight the selected file
+                if let Some(file_os_str) = self.selected_file.file_name() { 
+                    if let Some(file_name) = file_os_str.to_str() {
+                        let files = self.file_explorer.files();
+                        if let Some(index) = files.iter().position(|f| f.name() == file_name) {
+                            self.file_explorer.set_selected_idx(index);
+                        }
+                    }
+                }
+            } else {
+                self.file_explorer.set_cwd("/home/").unwrap();
+            }
+        } else if mounted_drives.len() > 1 && !username.is_empty() {
+            let path_buf: PathBuf = ["/media/", &username].iter().collect();
+            self.file_explorer.set_cwd(&path_buf).unwrap();
+        } else if mounted_drives.len() == 1 {
+            self.file_explorer.set_cwd(&mounted_drives[0]).unwrap();
+        } else if !username.is_empty() {
+            let username = whoami::username();
+            let path_buf: PathBuf = ["/home/", &username].iter().collect();
+            self.file_explorer.set_cwd(path_buf).unwrap();
+        } else {
+            self.file_explorer.set_cwd("/home/").unwrap();
+        }
     }
 
     fn compile_schedule(&mut self) {
@@ -787,18 +868,12 @@ impl TimingsWidget {
                                 TimingOp::Import => {
                                     // select file using file selector
                                     // TODO result return type and use same local terminal
-
-                                    let mut terminal = ratatui::init();
-                                    let file = PathBuf::new();
-                                    let file_path = FileSelectWidget::new(file).run(&mut terminal).expect("no file path selected");
-                                    execute!(
-                                        terminal.backend_mut(),
-                                        LeaveAlternateScreen,
-                                        DisableMouseCapture
-                                    )?;
-
                                     // todo implement parsing error reporting
-                                    self.list_element_entries = parse_common_timings(import::import_schedule(file_path));
+                                    //
+                                    
+                                    // render the file explorer?
+                                    
+
                                     self.current_screen = CurrentScreen::Import;
                                 },
                                 TimingOp::Export => {
@@ -984,7 +1059,18 @@ impl TimingsWidget {
                 }
             },
             CurrentScreen::Export => self.reverse_state(),
-            CurrentScreen::Import => self.reverse_state(),
+            CurrentScreen::Import => {
+                //KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                //KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
+                //KeyCode::Char('g') | KeyCode::Home => self.select_first(),
+                //KeyCode::Char('G') | KeyCode::End => self.select_last(),
+                //KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
+                //KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
+                let file = 
+
+                self.list_element_entries = parse_common_timings(import::import_schedule(self.selected_file.clone()));
+            },
+            CurrentScreen::Message => self.reverse_state(),
             CurrentScreen::Exit => {
                 match key.code {
                     KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
@@ -1489,6 +1575,54 @@ impl TimingsWidget {
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.duplicate_day_op_list.state);
     }
+
+    fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {
+        self.file_explorer.widget().render(area, buf);
+    }
+    fn render_file_explorer_selected_item(&self, area: Rect, buf: &mut Buffer) {
+
+        let mut text = Vec::with_capacity(10);
+    
+            text = vec![ 
+                Line::from("Select a file using our file explorer."),
+                Line::from("Use the arrow keys ⇅ to find the file you want to use."),
+                Line::from("Press ENTER to select the file."),
+                Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
+                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
+
+            ];
+
+        // show the list item's info under the list
+        let block = Block::new()
+            .title(Line::raw("INSTRUCTIONS").centered())
+            .borders(Borders::TOP)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .bg(NORMAL_ROW_BG)
+            .padding(Padding::horizontal(1));
+
+        // now render the item info
+        Paragraph::new(text)
+            .block(block)
+            .fg(TEXT_FG_COLOR)
+            .wrap(Wrap { trim: false })
+            .render(area, buf);
+    }
+    fn render_file_explorer_header(area: Rect, buf: &mut Buffer) {
+        Paragraph::new("Media Timer Setup")
+            .bold()
+            .centered()
+            .render(area, buf);
+    }
+
+    fn render_file_explorer_footer(area: Rect, buf: &mut Buffer) {
+        Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+            .style(FOOTER_STYLE)
+            .centered()
+            .render(area, buf);
+    }
+
+
     fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
