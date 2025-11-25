@@ -52,9 +52,9 @@ mod mount;
 mod styles;
 mod areas;
 
-mod timings;
+mod schedule;
 
-use crate::timings::{
+use crate::schedule::timings::{
     TimingsWidget
 };
 
@@ -87,7 +87,7 @@ pub enum Reboot {
     No
 }
 
-type Schedule = Vec<(String, String)>;
+pub type Schedule = Vec<(String, String)>;
 type Timings = Vec<Weekday>;
 
 #[derive(Display, Debug, Clone, PartialEq)]
@@ -150,7 +150,7 @@ fn default_timings() -> Timings {
     ]
 }
 
-fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
+pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
     let string_vec: Vec<String> = value.as_str().split(",").map(|x| x.trim().to_string()).collect(); 
     if &value != "" {
         let string_vec_test = string_vec.clone();
@@ -194,7 +194,6 @@ fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
        Weekday::Saturday(_) => Ok(Weekday::Saturday(day_schedule)),
        Weekday::Sunday(_) => Ok(Weekday::Sunday(day_schedule))
     }
-
 
 }
 /// This program runs one task at custom intervals. The task can also be looped.

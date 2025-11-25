@@ -15,8 +15,19 @@ use ratatui::{
     DefaultTerminal,
 };
 
+use ratatui::{
+    prelude::CrosstermBackend,
+};
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
+};
+
 use std::error::Error;
 use std::process;
+use std::fmt;
+use std::path::PathBuf;
 use crate::Timings;
 use crate::Weekday as CommonWeekday;
 use crate::Schedule as CommonSchedule;
@@ -31,6 +42,12 @@ use crate::styles::{
     SELECTED_STYLE,
     TEXT_FG_COLOR,
     FOOTER_STYLE
+};
+
+use crate::schedule::{
+    export,
+    import,
+    fileselect::FileSelectWidget
 };
 
 // This is declared twice due to the TUI list structure requirements and must be converted 
@@ -133,6 +150,8 @@ enum CurrentScreen {
     Delete,
     Duplicate,
     DuplicateDay,
+    Import,
+    Export,
     Error,
     Exit
 }
@@ -204,6 +223,8 @@ enum TimingOp {
     Del,
     Edit,
     Duplicate,
+    Import,
+    Export,
     Exit
 }
 
@@ -212,8 +233,10 @@ impl TimingOp {
         match self {
             TimingOp::Add => "Add",
             TimingOp::Del => "Delete",
-            TimingOp::Duplicate => "Copy",
             TimingOp::Edit => "Edit",
+            TimingOp::Duplicate => "Copy",
+            TimingOp::Import => "Import",
+            TimingOp::Export => "Export",
             TimingOp::Exit => "Exit"
 
         }
@@ -224,6 +247,8 @@ impl TimingOp {
             TimingOpItem::from("Delete"), 
             TimingOpItem::from("Edit"),
             TimingOpItem::from("Copy"),
+            TimingOpItem::from("Import"),
+            TimingOpItem::from("Export"),
             TimingOpItem::from("Exit")
         ]
     }
@@ -498,7 +523,8 @@ impl FromIterator<(Weekday, &'static str)> for TimingsList {
     }
 }
 
-struct TimingsEntry {
+#[derive(Clone)]
+pub struct TimingsEntry {
     list_element: String,
     timings: TimingCollection,
     info: String,
@@ -735,7 +761,9 @@ impl TimingsWidget {
                                 1 => TimingOp::Del,
                                 2 => TimingOp::Edit,
                                 3 => TimingOp::Duplicate,
-                                4 => TimingOp::Exit,
+                                4 => TimingOp::Import,
+                                5 => TimingOp::Export,
+                                6 => TimingOp::Exit,
                                 _ => TimingOp::Add
 
                             };
@@ -756,6 +784,28 @@ impl TimingsWidget {
                                     }
                                 },
                                 TimingOp::Duplicate => self.current_screen = CurrentScreen::Duplicate,
+                                TimingOp::Import => {
+                                    // select file using file selector
+                                    // TODO result return type and use same local terminal
+
+                                    let mut terminal = ratatui::init();
+                                    let file = PathBuf::new();
+                                    let file_path = FileSelectWidget::new(file).run(&mut terminal).expect("no file path selected");
+                                    execute!(
+                                        terminal.backend_mut(),
+                                        LeaveAlternateScreen,
+                                        DisableMouseCapture
+                                    )?;
+
+                                    // todo implement parsing error reporting
+                                    self.list_element_entries = parse_common_timings(import::import_schedule(file_path));
+                                    self.current_screen = CurrentScreen::Import;
+                                },
+                                TimingOp::Export => {
+                                    self.compile_schedule();
+                                    export::export_schedule(self.schedule.clone());
+                                    self.current_screen = CurrentScreen::Export;
+                                },
                                 TimingOp::Exit => self.current_screen = CurrentScreen::Exit
                             };
                         };
@@ -933,6 +983,8 @@ impl TimingsWidget {
                     _ => self.reverse_state()
                 }
             },
+            CurrentScreen::Export => self.reverse_state(),
+            CurrentScreen::Import => self.reverse_state(),
             CurrentScreen::Exit => {
                 match key.code {
                     KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
@@ -1040,6 +1092,8 @@ impl TimingsWidget {
             CurrentScreen::Duplicate => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::DuplicateDay => self.current_screen = CurrentScreen::Duplicate,
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
+            CurrentScreen::Import => self.current_screen = CurrentScreen::TimingOptions,
+            CurrentScreen::Export => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Error => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
         }
@@ -1435,6 +1489,40 @@ impl TimingsWidget {
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.duplicate_day_op_list.state);
     }
+    fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+
+        let username = whoami::username();
+        let message = format!("Schedule has been imported");
+
+        let input = Paragraph::new(Line::raw(message)) 
+           .fg(TEXT_FG_COLOR)
+           .bg(NORMAL_ROW_BG)
+           .wrap(Wrap {trim:false})
+           .block(
+               Block::bordered()
+               .style(ITEM_HEADER_STYLE)
+               .title(Line::raw("IMPORT").centered())
+           )
+           .render(area, buf);
+    }
+    fn render_export(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+
+        let username = whoami::username();
+        let message = format!("Schedule has been exported to /home/{}/schedule.mt", username);
+
+        let input = Paragraph::new(Line::raw(message)) 
+           .fg(TEXT_FG_COLOR)
+           .bg(NORMAL_ROW_BG)
+           .wrap(Wrap {trim:false})
+           .block(
+               Block::bordered()
+               .style(ITEM_HEADER_STYLE)
+               .title(Line::raw("EXPORT").centered())
+           )
+           .render(area, buf);
+    }
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
         let message = match self.error_type {
@@ -1762,6 +1850,63 @@ impl Widget for &mut TimingsWidget {
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
                 self.render_duplicate_day(popup_area, buf);
+            },
+            CurrentScreen::Import => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                let [weekdays_area, day_area] = Layout::horizontal([
+                    Constraint::Fill(1),
+                    Constraint::Fill(1)
+                ])
+                .areas(list_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+
+                self.render_weekdays_list(weekdays_area, buf);
+                self.render_day_list(day_area, buf);
+                self.render_selected_item(item_area, buf);
+                self.render_import(popup_area, buf);
+            },
+
+            CurrentScreen::Export => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                let [weekdays_area, day_area] = Layout::horizontal([
+                    Constraint::Fill(1),
+                    Constraint::Fill(1)
+                ])
+                .areas(list_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+
+                self.render_weekdays_list(weekdays_area, buf);
+                self.render_day_list(day_area, buf);
+                self.render_selected_item(item_area, buf);
+                self.render_export(popup_area, buf);
             },
 
             CurrentScreen::Error => {
