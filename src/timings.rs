@@ -131,6 +131,7 @@ enum CurrentScreen {
     Add,
     Edit,
     Delete,
+    Duplicate,
     Error,
     Exit
 }
@@ -201,6 +202,7 @@ enum TimingOp {
     Add,
     Del,
     Edit,
+    Duplicate,
     Exit
 }
 
@@ -209,6 +211,7 @@ impl TimingOp {
         match self {
             TimingOp::Add => "Add",
             TimingOp::Del => "Delete",
+            TimingOp::Duplicate => "Copy",
             TimingOp::Edit => "Edit",
             TimingOp::Exit => "Exit"
 
@@ -219,6 +222,7 @@ impl TimingOp {
             TimingOpItem::from("Add"), 
             TimingOpItem::from("Delete"), 
             TimingOpItem::from("Edit"),
+            TimingOpItem::from("Duplicate"),
             TimingOpItem::from("Exit")
         ]
     }
@@ -260,6 +264,52 @@ impl From<&TimingOpItem> for ListItem<'_> {
         ListItem::new(line)
     }
 }
+
+// Copy / duplicate options submenu
+enum DuplicateOpItem {
+    Day,
+    Weekdays,
+    All
+}
+
+impl DuplicateOpItem {
+    fn as_desc(&self) -> &'static str {
+        match {
+            DuplicateOpItem::Day => "Copy this schedule to another day",
+            DuplicateOpItem::Weekdays => "Copy this schedule to all weekdays",
+            DuplicateOpItem::All => "Copy this schedule to all days"
+        }
+    }
+}
+
+struct DuplicateOpList {
+    duplicate_list: Vec<DuplicateOpItem>,
+    state: ListState
+}
+
+impl DuplicateOpList {
+    fn default() -> DuplicateOpList {
+        let mut state = ListState::default();
+        state.select_first();
+        DuplicateOpList {
+            duplicate_list: vec![
+                DuplicateOpItem::Day,
+                DuplicateOpItem::Weekdays,
+                DuplicateOpItem::All
+            ],
+            state
+        }
+    }
+}
+
+impl From<&DuplicateOpItem> for ListItem<'_> {
+    fn from(value: &DuplicateOpItem) -> Self {
+        let line = Line::styled(format!("{}", value.item.as_desc()), TEXT_FG_COLOR);
+        ListItem::new(line)
+    }
+}
+
+// Delete options submenu
 struct DelOpItem {
     item: String
 }
@@ -342,6 +392,7 @@ pub struct TimingsWidget {
     character_index: usize,
     input_area: Rect,
     del_op_list: DelOpList,
+    duplicate_op_list: DuplicateOpList,
     exit_list: ExitList,
     error_type: ErrorType,
     list_element_entries: TimingsList,
@@ -607,7 +658,8 @@ impl TimingsWidget {
                                 0 => TimingOp::Add,
                                 1 => TimingOp::Del,
                                 2 => TimingOp::Edit,
-                                3 => TimingOp::Exit,
+                                3 => TimingOp::Duplicate,
+                                4 => TimingOp::Exit,
                                 _ => TimingOp::Add
 
                             };
@@ -627,6 +679,7 @@ impl TimingsWidget {
                                         self.reverse_state();
                                     }
                                 },
+                                TimingOp::Duplicate => self.current_screen = CurrentScreet::Duplicate,
                                 TimingOp::Exit => self.current_screen = CurrentScreen::Exit
                             };
                         };
@@ -721,6 +774,30 @@ impl TimingsWidget {
                     _ => {}
                 }
             },
+            CurrentScreen::Duplicate => {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
+                    KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
+                    KeyCode::Char('g') | KeyCode::Home => self.select_first(),
+                    KeyCode::Char('G') | KeyCode::End => self.select_last(),
+                    KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
+                        if let Some(i) = self.duplicate_op_list.state.selected() {
+                            // match the duplicate submenu emnum options
+                            let op = match i {
+                                0 => DuplicateOpItem::Day,
+                                1 => DuplicateOpItem::Weekdays,
+                                2 => DuplicateOpItem::All,
+                                _ => DuplicateOpItem::Day
+                            };
+
+                            self.operation_selected = op.clone();
+
+                            //match the op statement and switch current screen
+
+                                
+                            }
+
             CurrentScreen::Error => {
                 // use any key press to leave error screen
                 match self.previous_screen {
@@ -1318,10 +1395,10 @@ impl Widget for &mut TimingsWidget {
 
                 TimingsWidget::render_header(header_area, buf);
                 TimingsWidget::render_footer(footer_area, buf);
+                
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
-
                 self.render_op_list(popup_area, buf);
            },
             CurrentScreen::Add => {
@@ -1405,10 +1482,10 @@ impl Widget for &mut TimingsWidget {
 
                 TimingsWidget::render_header(header_area, buf);
                 TimingsWidget::render_footer(footer_area, buf);
+
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
-
                 self.render_delete(popup_area, buf);
             },
             CurrentScreen::Error => {
@@ -1433,10 +1510,10 @@ impl Widget for &mut TimingsWidget {
 
                 TimingsWidget::render_header(header_area, buf);
                 TimingsWidget::render_footer(footer_area, buf);
+
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
-
                 self.render_error(popup_area, buf);
             },
 
