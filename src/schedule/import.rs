@@ -77,7 +77,7 @@ mod tests {
         // Create schedule for Friday (15:30-16:45, 18:00-19:30)
         let friday_schedule = vec![
             ("15:30:00".to_string(), "16:45:00".to_string()),
-            ("18:00:00".to_string(), "19:30:00".to_string())
+            ("18:00".to_string(), "19:30:00".to_string())
         ];
         let friday = Weekday::Friday(friday_schedule);
 

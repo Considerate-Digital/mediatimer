@@ -69,3 +69,65 @@ pub fn export_schedule(timings: Vec<Weekday>) {
        IoError::other("Could not find home directory");
    }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use std::io::{BufRead, BufReader};
+
+    #[test]
+    fn check_export_schedule() {
+        // override the home directory
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let temp_path = temp_dir.path().to_path_buf();
+
+        // Override the home directory for the test
+        // Using an environment variable to mock home::home_dir()
+        temp_dir.path().to_str().map(|home_path| {
+            env::set_var("HOME", home_path);
+        });
+
+        // create a set of timings
+        // Create schedule for Monday (10:00-11:00)
+        let monday_schedule = vec![("10:00:00".to_string(), "11:00:00".to_string())];
+        let monday = Weekday::Monday(monday_schedule);
+
+        // Create schedule for Friday (15:30-16:45, 18:00-19:30)
+        let friday_schedule = vec![
+            ("15:30:00".to_string(), "16:45:00".to_string()),
+            ("18:00:00".to_string(), "19:30:00".to_string())
+        ];
+        let friday = Weekday::Friday(friday_schedule);
+
+        // Create empty schedules for other days
+        let tuesday = Weekday::Tuesday(Vec::new());
+        let wednesday = Weekday::Wednesday(Vec::new());
+        let thursday = Weekday::Thursday(Vec::new());
+        let saturday = Weekday::Saturday(Vec::new());
+        let sunday = Weekday::Sunday(Vec::new());
+
+        // Combine all schedules
+        let timings = vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday];
+    
+        // add the schedule.mt to the temporary home dir path
+        let schedule_path = temp_path.join("schedule.mt");
+        println!("{}", schedule_path.display());
+    
+        // run the export function
+        let _export_schedule = export_schedule(timings); 
+
+
+        assert!(schedule_path.exists(), "schedule.mt was not created");
+
+        let mut file = fs::File::open(&schedule_path).expect("file could not be opened");
+
+        let reader = BufReader::new(file);
+        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
+        
+        assert!(lines.contains(&"MT_MONDAY=10:00:00-11:00:00".to_string()), "Missing or incorrect Monday schedule");
+        assert!(lines.contains(&"MT_FRIDAY=15:30:00-16:45:00,18:00:00-19:30:00".to_string()), "Missing or incorrect Friday schedule");
+
+    }
+}
+
