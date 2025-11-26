@@ -490,13 +490,13 @@ mod tests {
         let advanced_schedule = AdvancedSchedule::Yes;
 
         // Create schedule for Monday (10:00-11:00)
-        let monday_schedule = vec![("10:00".to_string(), "11:00".to_string())];
+        let monday_schedule = vec![("10:00:00".to_string(), "11:00:00".to_string())];
         let monday = Weekday::Monday(monday_schedule);
 
         // Create schedule for Friday (15:30-16:45, 18:00-19:30)
         let friday_schedule = vec![
-            ("15:30".to_string(), "16:45".to_string()),
-            ("18:00".to_string(), "19:30".to_string())
+            ("15:30:00".to_string(), "16:45:00".to_string()),
+            ("18:00:00".to_string(), "19:30:00".to_string())
         ];
         let friday = Weekday::Friday(friday_schedule);
 
@@ -536,8 +536,8 @@ mod tests {
         assert!(lines.contains(&"MT_PROCTYPE=\"video\"".to_string()), "Missing or incorrect process type");
         assert!(lines.contains(&"MT_AUTOLOOP=\"true\"".to_string()), "Missing or incorrect autoloop setting");
         assert!(lines.contains(&"MT_SCHEDULE=\"true\"".to_string()), "Missing or incorrect schedule setting");
-        assert!(lines.contains(&"MT_MONDAY=10:00-11:00".to_string()), "Missing or incorrect Monday schedule");
-        assert!(lines.contains(&"MT_FRIDAY=15:30-16:45,18:00-19:30".to_string()), "Missing or incorrect Friday schedule");
+        assert!(lines.contains(&"MT_MONDAY=10:00:00-11:00:00".to_string()), "Missing or incorrect Monday schedule");
+        assert!(lines.contains(&"MT_FRIDAY=15:30:00-16:45:00,18:00:00-19:30:00".to_string()), "Missing or incorrect Friday schedule");
         assert!(lines.contains(&"MT_FILE=\"/path/to/test/file.mp4\"".to_string()), "Missing or incorrect file path");
 
         // Verify empty schedules

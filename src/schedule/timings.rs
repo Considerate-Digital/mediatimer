@@ -505,7 +505,41 @@ pub struct TimingsWidget {
     list_element_entries: TimingsList,
     schedule: CommonTimings
 }
-
+impl Default for TimingsWidget {
+    fn default() -> Self {
+        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
+        Self {
+            message_text: String::new(),
+            file_explorer: FileExplorer::new().unwrap(),
+            selected_file: PathBuf::new(),
+            should_exit: false,
+            current_screen: CurrentScreen::Weekdays,
+            previous_screen: CurrentScreen::Weekdays,
+            weekday_selected: 0,
+            timing_selected: 0,
+            operation_selected: TimingOp::Add,
+            timing_op_list: TimingOpList::default(),
+            input: String::new(),
+            character_index: 0,
+            input_area: Rect::new(0,0,0,0),
+            del_op_list: DelOpList::default(),
+            duplicate_op_list: DuplicateOpList::default(),
+            duplicate_day_op_list: DuplicateDayOpList::default(),
+            exit_list: ExitList::default(),
+            error_type: ErrorType::Format,
+            list_element_entries: TimingsList::from_iter([
+                (Weekday::Monday(TimingCollection::default()), info_text),
+                (Weekday::Tuesday(TimingCollection::default()), info_text),
+                (Weekday::Wednesday(TimingCollection::default()), info_text),
+                (Weekday::Thursday(TimingCollection::default()), info_text),
+                (Weekday::Friday(TimingCollection::default()), info_text),
+                (Weekday::Saturday(TimingCollection::default()), info_text),
+                (Weekday::Sunday(TimingCollection::default()), info_text),
+            ]),
+            schedule: Vec::with_capacity(7)
+        }
+    }
+}
 struct TimingsList {
     list: Vec<TimingsEntry>,
     state: ListState
@@ -2134,6 +2168,26 @@ mod tests {
         t_widget.reverse_state();
         assert!(t_widget.current_screen == CurrentScreen::Day);
 
+        t_widget.current_screen = CurrentScreen::Duplicate;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
+
+        t_widget.current_screen = CurrentScreen::DuplicateDay;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::Duplicate);
+
+        t_widget.current_screen = CurrentScreen::Import;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
+
+        t_widget.current_screen = CurrentScreen::Export;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
+
+        t_widget.current_screen = CurrentScreen::Message;
+        t_widget.reverse_state();
+        assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
+
         t_widget.current_screen = CurrentScreen::Error;
         t_widget.reverse_state();
         assert!(t_widget.current_screen == CurrentScreen::TimingOptions);
@@ -2150,6 +2204,25 @@ mod tests {
         let timing = t_widget.parse_timing_from_input();
         assert_eq!(timing.timing.0, "10:00:00");
         assert_eq!(timing.timing.1, "11:00:00");
+    }
+    
+    #[test]
+    fn check_parse_common_timings() {
+        // create "common timings" passed from main
+        // common timings are a vector of Weekday
+        let common_timings: CommonTimings = vec![
+            CommonWeekday::Monday(Vec::new()),
+            CommonWeekday::Tuesday(Vec::new()),
+            CommonWeekday::Wednesday(Vec::new()),
+            CommonWeekday::Thursday(Vec::new()),
+            CommonWeekday::Friday(Vec::new()),
+            CommonWeekday::Saturday(Vec::new()),
+            CommonWeekday::Sunday(Vec::new()),
+        ];
+
+        let parsed_timings: TimingsList = parse_common_timings(common_timings);
+        assert_eq!(parsed_timings.list[0].list_element, String::from("Monday"));
+        assert_eq!(parsed_timings.list[6].list_element, String::from("Sunday"));
     }
 
     #[test]
@@ -2237,17 +2310,5 @@ mod tests {
         assert_eq!(extracted_timings.1, 160000 as u32);
     }
     
-    // tests needed
-    // duplicate menu
-    // duplicate day
-    // duplicate weekdays
-    // duplicate all days
-    // import
-    // export
-    // message
-    // file explorer??
-    #[test]
-    fn check_duplicate_menu() {
-
-    }
+    
 }

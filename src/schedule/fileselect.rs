@@ -279,4 +279,3 @@ impl Widget for &mut FileSelectWidget {
     }
 
 }
-
