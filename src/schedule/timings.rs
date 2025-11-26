@@ -52,7 +52,7 @@ use crate::styles::{
 
 use crate::schedule::{
     export,
-    import
+    import,
 };
 
 use crate::mount::identify_mounted_drives;
@@ -233,7 +233,6 @@ enum TimingOp {
     Edit,
     Duplicate,
     Import,
-    Message,
     Export,
     Exit
 }
@@ -413,8 +412,6 @@ impl From<&DuplicateDayOpItem> for ListItem<'_> {
     }
 }
 
-
-
 // Delete options submenu
 struct DelOpItem {
     item: String
@@ -486,12 +483,13 @@ enum ErrorType {
 
 
 pub struct TimingsWidget {
+    message_text: String,
     file_explorer: FileExplorer,
     selected_file: FileSelect,
     should_exit: bool,
     current_screen: CurrentScreen,
     previous_screen: CurrentScreen,
-    // selected weekdays and timings are indexes
+    // selected weekdays and timings are indexes starting at 0
     weekday_selected: usize,
     timing_selected: usize,
     operation_selected: TimingOp,
@@ -559,41 +557,6 @@ impl TimingsEntry {
     }
 }
 
-impl Default for TimingsWidget {
-    fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
-        Self {
-            file_explorer: FileExplorer::new().unwrap(),
-            selected_file: Path::new("./").to_path_buf(), 
-            should_exit: false,
-            current_screen: CurrentScreen::Weekdays,
-            previous_screen: CurrentScreen::Weekdays,
-            weekday_selected: 0,
-            timing_selected: 0,
-            operation_selected: TimingOp::Add,
-            timing_op_list: TimingOpList::default(),
-            input: String::new(),
-            character_index: 0,
-            input_area: Rect::new(0,0,0,0),
-            del_op_list: DelOpList::default(),
-            duplicate_op_list: DuplicateOpList::default(),
-            duplicate_day_op_list: DuplicateDayOpList::default(),
-            exit_list: ExitList::default(),
-            error_type: ErrorType::Format,
-            list_element_entries: TimingsList::from_iter([
-                (Weekday::Monday(TimingCollection::default()), info_text),
-                (Weekday::Tuesday(TimingCollection::default()), info_text),
-                (Weekday::Wednesday(TimingCollection::default()), info_text),
-                (Weekday::Thursday(TimingCollection::default()), info_text),
-                (Weekday::Friday(TimingCollection::default()), info_text),
-                (Weekday::Saturday(TimingCollection::default()), info_text),
-                (Weekday::Sunday(TimingCollection::default()), info_text),
-            ]),
-            schedule: Vec::with_capacity(7)
-        }
-    }
-}
-
 fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
     let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
 
@@ -636,6 +599,7 @@ impl TimingsWidget {
 
 
         Self {
+            message_text: String::new(),
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: Path::new("./").to_path_buf(),
             should_exit: false,
@@ -676,20 +640,18 @@ impl TimingsWidget {
                     _ => {}
                 }
             })?;
-            if let Event::Key(key) = event::read()? {
+
+            let event = event::read()?;
                 match self.current_screen {
                     CurrentScreen::Import => {
-                        if let input = event::read()? {
-                            self.file_explorer.handle(&input);
-                        }
+                        self.file_explorer.handle(&event);
                     },
-                    _ => {
-                        self.handle_key(key);
-                        //self.text_area.input(key);
-                    }
+                    _ => {}
                 }
-
-            };
+                if let Event::Key(key) = event {
+                    self.handle_key(key);
+                    //self.text_area.input(key);
+                }
         }
         Ok(self.schedule)
     }
@@ -781,6 +743,7 @@ impl TimingsWidget {
         match self.current_screen {
             CurrentScreen::Weekdays => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Char('q') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
                     //KeyCode::Char('h') | KeyCode::Left => self.select_none(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
@@ -804,6 +767,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Day => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Char('q') | KeyCode::Esc => self.current_screen = CurrentScreen::Exit,
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
@@ -866,14 +830,6 @@ impl TimingsWidget {
                                 },
                                 TimingOp::Duplicate => self.current_screen = CurrentScreen::Duplicate,
                                 TimingOp::Import => {
-                                    // select file using file selector
-                                    // TODO result return type and use same local terminal
-                                    // todo implement parsing error reporting
-                                    //
-                                    
-                                    // render the file explorer?
-                                    
-
                                     self.current_screen = CurrentScreen::Import;
                                 },
                                 TimingOp::Export => {
@@ -891,6 +847,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Add => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Esc => self.reverse_state(),
                     KeyCode::Left => self.move_cursor_left(),
                     KeyCode::Right => self.move_cursor_right(),
@@ -924,6 +881,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Edit => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Esc => self.reverse_state(),
                     KeyCode::Left => self.move_cursor_left(),
                     KeyCode::Right => self.move_cursor_right(),
@@ -952,6 +910,7 @@ impl TimingsWidget {
 
             CurrentScreen::Delete => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
                     KeyCode::Char('g') | KeyCode::Home => self.select_first(),
@@ -977,6 +936,7 @@ impl TimingsWidget {
             },
             CurrentScreen::Duplicate => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
                     KeyCode::Char('g') | KeyCode::Home => self.select_first(),
@@ -1001,11 +961,13 @@ impl TimingsWidget {
                                 DuplicateOpItem::Day => self.current_screen = CurrentScreen::DuplicateDay,
                                 DuplicateOpItem::Weekdays => {
                                     self.duplicate_schedule_to_weekdays();
-                                    self.current_screen = CurrentScreen::Weekdays;
+                                    self.message_text = String::from("Schedule has been copied to all weekdays.");
+                                    self.current_screen = CurrentScreen::Message;
                                 },
                                 DuplicateOpItem::All => {
                                     self.duplicate_schedule_to_all_days();
-                                    self.current_screen = CurrentScreen::Weekdays;
+                                    self.message_text = String::from("Schedule has been copied to all days.");
+                                    self.current_screen = CurrentScreen::Message;
                                 }
                             }
                         }
@@ -1016,6 +978,7 @@ impl TimingsWidget {
             },
             CurrentScreen::DuplicateDay => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
                     KeyCode::Char('g') | KeyCode::Home => self.select_first(),
@@ -1045,7 +1008,8 @@ impl TimingsWidget {
                             }
                 
                         }
-                        self.current_screen = CurrentScreen::Weekdays;
+                        self.message_text = String::from("Day schedule has been copied.");
+                        self.current_screen = CurrentScreen::Message;
                     },
                     _ => {}
                 }
@@ -1055,24 +1019,47 @@ impl TimingsWidget {
                 match self.previous_screen {
                     CurrentScreen::Add => self.current_screen = CurrentScreen::Add,
                     CurrentScreen::Edit => self.current_screen = CurrentScreen::Edit,
+                    CurrentScreen::Import => self.current_screen = CurrentScreen::TimingOptions,
+                    CurrentScreen::Duplicate => self.current_screen = CurrentScreen::TimingOptions,
+                    CurrentScreen::DuplicateDay => self.current_screen = CurrentScreen::TimingOptions,
                     _ => self.reverse_state()
                 }
             },
+            CurrentScreen::Message => {
+                // use any key press to leave message screen
+                match self.previous_screen {
+                    CurrentScreen::Add => self.current_screen = CurrentScreen::Add,
+                    CurrentScreen::Edit => self.current_screen = CurrentScreen::Edit,
+                    CurrentScreen::Import => self.current_screen = CurrentScreen::TimingOptions,
+                    CurrentScreen::Duplicate => self.current_screen = CurrentScreen::TimingOptions,
+                    CurrentScreen::DuplicateDay => self.current_screen = CurrentScreen::TimingOptions,
+                    _ => self.reverse_state()
+                }
+            },
+
             CurrentScreen::Export => self.reverse_state(),
             CurrentScreen::Import => {
-                //KeyCode::Char('j') | KeyCode::Down => self.select_next(),
-                //KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
-                //KeyCode::Char('g') | KeyCode::Home => self.select_first(),
-                //KeyCode::Char('G') | KeyCode::End => self.select_last(),
-                //KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
-                //KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
-                let file = 
+                let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
+                let dir_is_dead_end = dirs_in_current.len() < 2; 
+                let is_dir = self.file_explorer.current().is_dir();
+                match key.code {
+                    KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
+                    KeyCode::Enter if is_dir == false || (is_dir == false && dir_is_dead_end == true) => {
+                        let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
+                        self.selected_file = current_path_buf;
+                        let schedule = import::import_schedule(self.selected_file.clone());
+                        self.list_element_entries = parse_common_timings(schedule);
+                        self.message_text = String::from("Schedule import successful");
+                        self.current_screen = CurrentScreen::Message;
+                        },
+                    _ => {}
+                }
 
-                self.list_element_entries = parse_common_timings(import::import_schedule(self.selected_file.clone()));
             },
             CurrentScreen::Message => self.reverse_state(),
             CurrentScreen::Exit => {
                 match key.code {
+                    KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
                     KeyCode::Esc | KeyCode::Backspace => self.reverse_state(),
                     KeyCode::Char('j') | KeyCode::Down => self.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.select_previous(),
@@ -1180,6 +1167,7 @@ impl TimingsWidget {
             CurrentScreen::Delete => self.current_screen = CurrentScreen::Day,
             CurrentScreen::Import => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Export => self.current_screen = CurrentScreen::TimingOptions,
+            CurrentScreen::Message => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Error => self.current_screen = CurrentScreen::TimingOptions,
             CurrentScreen::Exit => self.current_screen = CurrentScreen::Weekdays
         }
@@ -1429,18 +1417,6 @@ impl TimingsWidget {
             .timing_op_list
             .timing_ops
             .iter()
-            .filter(|ops| 
-                if &ops.op_item == "Edit" {
-                    if self.list_element_entries.list[self.weekday_selected]
-                            .timings.timing_collection.len() == 0 {
-                        false
-                    } else {
-                        true
-                    }
-                } else {
-                    true
-                }
-            )
             .enumerate()
             .map(|(i, ops)| {
                 let color = alternate_colors(i);
@@ -1584,11 +1560,11 @@ impl TimingsWidget {
         let mut text = Vec::with_capacity(10);
     
             text = vec![ 
-                Line::from("Select a file using our file explorer."),
+                Line::from("Select a file using our file explorer or press 'm' to open the menu."),
                 Line::from("Use the arrow keys ⇅ to find the file you want to use."),
                 Line::from("Press ENTER to select the file."),
                 Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
-                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
+                Line::from("USB sticks will show up automatically. Manually find them in the directory '/media'."),
 
             ];
 
@@ -1608,14 +1584,15 @@ impl TimingsWidget {
             .wrap(Wrap { trim: false })
             .render(area, buf);
     }
-    fn render_file_explorer_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+
+    fn render_file_explorer_header(&mut self, area: Rect, buf: &mut Buffer) {
+        Paragraph::new("Select a schedule for import")
             .bold()
             .centered()
             .render(area, buf);
     }
 
-    fn render_file_explorer_footer(area: Rect, buf: &mut Buffer) {
+    fn render_file_explorer_footer(&mut self, area: Rect, buf: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
             .style(FOOTER_STYLE)
             .centered()
@@ -1656,6 +1633,22 @@ impl TimingsWidget {
                .title(Line::raw("EXPORT").centered())
            )
            .render(area, buf);
+
+    }
+    fn render_message(&mut self, area: Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+
+        let input = Paragraph::new(Line::raw(&self.message_text)) 
+           .fg(TEXT_FG_COLOR)
+           .bg(NORMAL_ROW_BG)
+           .wrap(Wrap {trim:false})
+           .block(
+               Block::bordered()
+               .style(ITEM_HEADER_STYLE)
+               .title(Line::raw("MESSAGE").centered())
+           )
+           .render(area, buf);
+
     }
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
@@ -1709,16 +1702,8 @@ impl TimingsWidget {
     }
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
-        // get the info
-        /*
-        let info = if let Some(i) = self.list_element_entries.state.selected() {
-            self.list_element_entries.list[i].info.clone()
-        } else {
-            "Nothing selected...".to_string()
-        };
-        */
         let info = vec![ 
-            Line::from("Use the arrow keys ⇅ to select a day."),
+            Line::from("Use the arrow keys ⇅ to select a day or press 'm' to open the menu."),
             Line::from("Use ENTER or → to display the schedule."),
             Line::from("Select a timing and press ENTER to Add, Edit or Delete."),
             Line::from("Enter the start and end timings for each new schedule entry."),
@@ -1993,25 +1978,16 @@ impl Widget for &mut TimingsWidget {
                 ])
                 .areas(area);
 
-                let [list_area, item_area] = Layout::vertical([
+                let [file_area, item_area] = Layout::vertical([
                     Constraint::Fill(3),
                     Constraint::Fill(1)
                 ])
                 .areas(main_area);
 
-                let [weekdays_area, day_area] = Layout::horizontal([
-                    Constraint::Fill(1),
-                    Constraint::Fill(1)
-                ])
-                .areas(list_area);
-
-                TimingsWidget::render_header(header_area, buf);
-                TimingsWidget::render_footer(footer_area, buf);
-
-                self.render_weekdays_list(weekdays_area, buf);
-                self.render_day_list(day_area, buf);
-                self.render_selected_item(item_area, buf);
-                self.render_import(popup_area, buf);
+                self.render_file_explorer_header(header_area, buf);
+                self.render_file_explorer_footer(footer_area, buf);
+                self.render_file_explorer(file_area, buf);
+                self.render_file_explorer_selected_item(item_area, buf);
             },
 
             CurrentScreen::Export => {
@@ -2041,6 +2017,34 @@ impl Widget for &mut TimingsWidget {
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
                 self.render_export(popup_area, buf);
+            },
+            CurrentScreen::Message => {
+                let [header_area, main_area, footer_area] = Layout::vertical([
+                    Constraint::Length(2),
+                    Constraint::Fill(1),
+                    Constraint::Length(1),
+                ])
+                .areas(area);
+
+                let [list_area, item_area] = Layout::vertical([
+                    Constraint::Fill(3),
+                    Constraint::Fill(1)
+                ])
+                .areas(main_area);
+
+                let [weekdays_area, day_area] = Layout::horizontal([
+                    Constraint::Fill(1),
+                    Constraint::Fill(1)
+                ])
+                .areas(list_area);
+
+                TimingsWidget::render_header(header_area, buf);
+                TimingsWidget::render_footer(footer_area, buf);
+
+                self.render_weekdays_list(weekdays_area, buf);
+                self.render_day_list(day_area, buf);
+                self.render_selected_item(item_area, buf);
+                self.render_message(popup_area, buf);
             },
 
             CurrentScreen::Error => {
@@ -2232,7 +2236,17 @@ mod tests {
         let extracted_timings = t_widget.extract_timings_from_input(&input);
         assert_eq!(extracted_timings.0, 121212 as u32);
         assert_eq!(extracted_timings.1, 160000 as u32);
-
-
     }
+    
+    // tests needed
+    // duplicate menu
+    // duplicate day
+    // duplicate weekdays
+    // duplicate all days
+    // import
+    // export
+    // message
+    // file explorer??
+    #[test]
+    fn 
 }
