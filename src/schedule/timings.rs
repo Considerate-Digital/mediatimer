@@ -597,7 +597,6 @@ impl TimingsWidget {
         // convert the common-timings to timings
         let parsed_timings: TimingsList = parse_common_timings(preset_timings);
 
-
         Self {
             message_text: String::new(),
             file_explorer: FileExplorer::new().unwrap(),
@@ -2248,5 +2247,7 @@ mod tests {
     // message
     // file explorer??
     #[test]
-    fn 
+    fn check_duplicate_menu() {
+
+    }
 }
