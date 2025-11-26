@@ -2309,6 +2309,20 @@ mod tests {
         assert_eq!(extracted_timings.0, 121212 as u32);
         assert_eq!(extracted_timings.1, 160000 as u32);
     }
-    
+
+    #[test]
+    fn check_day_duplicate_schedule() {
+
+    }
+
+    #[test] 
+    fn check_weekday_duplicate_schedule() {
+
+    }
+
+    #[test]
+    fn check_all_days_duplicate_schedule() {
+
+    }
     
 }
