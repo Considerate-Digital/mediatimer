@@ -2312,16 +2312,65 @@ mod tests {
 
     #[test]
     fn check_day_duplicate_schedule() {
+        let mut t_widget = TimingsWidget::default();
+        // change Tuesday's schedule and copy to Wednesday
+        t_widget.weekday_selected = 1;
+        let new_timings: TimingCollection = TimingCollection::from_common_schedule(vec![
+            (String::from("10:00:00"), String::from("12:00:00"))
+        ]);
+        t_widget.list_element_entries.list[t_widget.weekday_selected].timings = new_timings;
+        // list_element_entries
+        // create DuplicateDayOpItem
+        let ddop_item = DuplicateDayOpItem::Wednesday;
+
+        let _duplicate_the_day = t_widget.duplicate_day_schedule(ddop_item);
+
+        assert_eq!("10:00:00", t_widget.list_element_entries.list[2].timings.timing_collection[0].timing.0);
+        assert_eq!("12:00:00", t_widget.list_element_entries.list[2].timings.timing_collection[0].timing.1);
+
 
     }
 
     #[test] 
     fn check_weekday_duplicate_schedule() {
+        let mut t_widget = TimingsWidget::default();
+        // change Tuesday's schedule and copy to Wednesday
+        t_widget.weekday_selected = 1;
+        let new_timings: TimingCollection = TimingCollection::from_common_schedule(vec![
+            (String::from("10:00:00"), String::from("12:00:00"))
+        ]);
+        t_widget.list_element_entries.list[t_widget.weekday_selected].timings = new_timings;
+        // list_element_entries
+        // create DuplicateDayOpItem
+        let _duplicate_schedules = t_widget.duplicate_schedule_to_weekdays();
+    
+        for i in  0..5 {
+            assert_eq!("10:00:00", t_widget.list_element_entries.list[i].timings.timing_collection[0].timing.0);
+            assert_eq!("12:00:00", t_widget.list_element_entries.list[i].timings.timing_collection[0].timing.1);
+        }
+
 
     }
 
     #[test]
     fn check_all_days_duplicate_schedule() {
+        let mut t_widget = TimingsWidget::default();
+        let mut t_widget = TimingsWidget::default();
+        // change Tuesday's schedule and copy to Wednesday
+        t_widget.weekday_selected = 1;
+        let new_timings: TimingCollection = TimingCollection::from_common_schedule(vec![
+            (String::from("10:00:00"), String::from("12:00:00"))
+        ]);
+        t_widget.list_element_entries.list[t_widget.weekday_selected].timings = new_timings;
+        // list_element_entries
+        // create DuplicateDayOpItem
+        let _duplicate_schedules = t_widget.duplicate_schedule_to_all_days();
+    
+        for i in  0..7 {
+            assert_eq!("10:00:00", t_widget.list_element_entries.list[i].timings.timing_collection[0].timing.0);
+            assert_eq!("12:00:00", t_widget.list_element_entries.list[i].timings.timing_collection[0].timing.1);
+        }
+
 
     }
     
