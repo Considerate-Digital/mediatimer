@@ -120,34 +120,6 @@ fn common_to_local_weekday(wd: CommonWeekday) -> Weekday {
     }
 
 }
-
-#[derive(Debug, Default, Setters)]
-struct Popup<'a> {
-    #[setters(into)]
-    title: Line<'a>,
-    #[setters(into)]
-    content: Text<'a>,
-    border_style: Style,
-    title_style: Style,
-    style: Style
-}
-
-impl Widget for Popup<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        Clear.render(area, buf);
-        let block = Block::new()
-            .title(self.title)
-            .title_style(self.title_style)
-            .borders(Borders::ALL)
-            .border_style(self.border_style);
-
-        Paragraph::new(self.content)
-            .wrap(Wrap { trim:true })
-            .style(self.style)
-            .block(block)
-            .render(area, buf);
-    }
-}
 #[derive(Debug, Clone, PartialEq)]
 enum CurrentScreen {
     Weekdays,
@@ -202,6 +174,8 @@ pub struct TimingCollection {
 }
 
 impl TimingCollection {
+
+    #[cfg(not(feature="test_schedule"))]
     fn default() -> TimingCollection {
         let mut state = ListState::default();
         state.select_first();
@@ -211,6 +185,33 @@ impl TimingCollection {
             state
         }
     }
+
+    #[cfg(feature="test_schedule")]
+    fn default() -> TimingCollection {
+        let mut state = ListState::default();
+        state.select_first();
+        
+        let mut timing_collection = Vec::with_capacity(20);
+        let first_timing = Timing::new("09:00:00", "10:00:00");
+        timing_collection.push(first_timing);
+        let mut start_hour: u16 = 10;
+        let mut end_hour: u16 = 11;
+        let mut i = 0;
+        while i < 20 {
+            let start = format!("{}{}", start_hour.to_string(), ":00:00"); 
+            let end = format!("{}{}", end_hour.to_string(), ":00:00"); 
+            timing_collection.push(Timing::new(&start, &end));
+            start_hour += 1;
+            end_hour += 1;
+            i += 1;
+        }
+
+        TimingCollection {
+            timing_collection,
+            state
+        }
+    }
+
     fn from_common_schedule(schedule: CommonSchedule) -> TimingCollection {
         let mut state = ListState::default();
         state.select_first();
@@ -1858,6 +1859,8 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+
+                Clear.render(popup_area, buf);
                 self.render_op_list(popup_area, buf);
            },
             CurrentScreen::Add => {
@@ -1885,6 +1888,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 // set the cursor area
                 self.input_area = popup_area;
                 self.render_add(popup_area, buf);
@@ -1915,6 +1919,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 // set the cursor area
                 self.input_area = popup_area;
                 self.render_edit(popup_area, buf);
@@ -1945,6 +1950,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_delete(popup_area, buf);
             },
             CurrentScreen::Duplicate => {
@@ -1973,6 +1979,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_duplicate(popup_area, buf);
             },
             CurrentScreen::DuplicateDay => {
@@ -2001,6 +2008,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_duplicate_day(popup_area, buf);
             },
             CurrentScreen::Import => {
@@ -2049,6 +2057,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_export(popup_area, buf);
             },
             CurrentScreen::Message => {
@@ -2077,6 +2086,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_message(popup_area, buf);
             },
 
@@ -2106,6 +2116,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(weekdays_area, buf);
                 self.render_day_list(day_area, buf);
                 self.render_selected_item(item_area, buf);
+                Clear.render(popup_area, buf);
                 self.render_error(popup_area, buf);
             },
 
@@ -2128,6 +2139,7 @@ impl Widget for &mut TimingsWidget {
                 self.render_weekdays_list(list_area, buf);
                 self.render_selected_item(item_area, buf);
 
+                Clear.render(popup_area, buf);
 
                 self.render_exit(popup_area, buf);
 

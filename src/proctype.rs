@@ -69,7 +69,6 @@ impl ProcTypeEntry {
 }
 
 impl ProcTypeWidget {
-
     #[cfg(feature="eco")]
     pub fn new(preset_type: ProcType) -> Self {
         Self {
