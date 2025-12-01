@@ -37,6 +37,7 @@ use crate::Timings;
 use crate::Weekday as CommonWeekday;
 use crate::Schedule as CommonSchedule;
 use crate::Timings as CommonTimings;
+use crate::areas;
 use regex::Regex;
 use strum::Display;
 
@@ -1776,12 +1777,7 @@ const fn alternate_colors(i: usize) -> Color {
 impl Widget for &mut TimingsWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
 
-        let popup_area = Rect {
-            x: area.width / 4,
-            y: area.height / 3,
-            width: area.width / 2,
-            height: area.height / 3,
-        };
+        let popup_area: Rect = areas::popup_area(area);
 
         Clear.render(area, buf);
 

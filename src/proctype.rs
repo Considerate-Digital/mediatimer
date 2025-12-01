@@ -15,6 +15,7 @@ use ratatui::{
 };
 use std::error::Error;
 use crate::ProcType;
+use crate::areas;
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
@@ -279,6 +280,7 @@ const fn alternate_colors(i: usize) -> Color {
 
 impl Widget for &mut ProcTypeWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let popup_area: Rect = areas::popup_area(area);
         let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),

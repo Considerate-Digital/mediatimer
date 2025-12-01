@@ -10,7 +10,7 @@ use ratatui::{
     text::Line,
     widgets::{
         Block, Borders, HighlightSpacing, Padding, Paragraph,
-        Widget, Wrap,
+        Widget, Wrap, Clear
     },
     DefaultTerminal,
 };
@@ -38,6 +38,7 @@ use crate::styles::{
 use crate::mount::identify_mounted_drives;
 
 use crate::ProcType;
+use crate::areas;
 
 use regex::Regex;
 
@@ -248,12 +249,7 @@ impl FileSelectWidget {
 
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
-        let popup_area = Rect {
-            x: area.width / 4,
-            y: area.height / 3,
-            width: area.width / 2,
-            height: area.height / 3,
-        };
+        let popup_area: Rect = areas::popup_area(area);
         let background = Paragraph::new(Line::raw(""))
             .bg(NORMAL_ROW_BG)
             .block(
@@ -397,6 +393,8 @@ impl Widget for &mut FileSelectWidget {
         FileSelectWidget::render_footer(footer_area, buf);
 
         if self.error == true {
+            let popup_area: Rect = areas::popup_area(area);
+            Clear.render(popup_area, buf);
             self.render_error(main_area, buf);
         } else {
             self.render_file_explorer(file_area, buf);
