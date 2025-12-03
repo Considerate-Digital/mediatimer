@@ -29,6 +29,9 @@ use strum::{
 mod proctype;
 use crate::proctype::ProcTypeWidget;
 
+mod web;
+use crate::web::WebWidget;
+
 mod fileselect;
 use crate::fileselect::FileSelectWidget;
 
@@ -64,6 +67,7 @@ pub enum ProcType {
     Audio,
     Image,
     Slideshow,
+    Web,
     Browser,
     Executable,
 }
@@ -209,10 +213,11 @@ struct Task {
     timings: Timings,
     file: PathBuf,
     slide_delay: u32,
+    url: String,
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32, url: String) -> Self {
         Task {
             proc_type,
             auto_loop,
@@ -220,6 +225,7 @@ impl Task {
             timings,
             file,
             slide_delay,
+            url
         }
     }
 }
@@ -290,6 +296,8 @@ fn write_task(task: Task) -> Result<(), IoError> {
 
        let _ = writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
 
+       // write url
+       let _ = writeln!(file, "MT_URL=\"{}\"", task.url)?;
       } else {
        eprintln!("Could not find home directory.");
        IoError::other("Could not find home directory");
@@ -323,6 +331,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // set up the config vars
     let mut file = PathBuf::new();
+    let mut web_url = String::new();
     let mut slide_delay: u32 = 5;
     let mut proc_type = ProcType::Video;
     let mut auto_loop = Autoloop::Yes;
@@ -349,6 +358,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     "audio" => ProcType::Audio,
                     "image" => ProcType::Image,
                     "slideshow" => ProcType::Slideshow,
+                    "web" => ProcType::Web,
                     "browser" => ProcType::Browser,
                     "executable" => ProcType::Executable,
                     &_ => ProcType::Video
@@ -359,6 +369,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &_ => Autoloop::No
                 },
                 "MT_FILE" => file.push(value.as_str()),
+                "MT_URL" => web_url.push_str(value.as_str()),
                 "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>().unwrap(),
                 "MT_SCHEDULE" => schedule = match value.as_str() {
                     "true" => AdvancedSchedule::Yes,
@@ -395,10 +406,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         ProcType::Slideshow => true,
         _ => false
     };
+    
+    if proctype == ProcType::Web {
+        //returns Ok(String);
+        web_url = WebWidget::new(web_url).run(&mut terminal)?;
+    } else {
+        // return Ok(PathBuf)
+        let proctype_clone = proctype.clone();
+        file = FileSelectWidget::new(file, can_be_dir, proctype_clone).run(&mut terminal)?;
 
-    // return Ok(FileSelectType)
-    let proctype_clone = proctype.clone();
-    let file_path = FileSelectWidget::new(file, can_be_dir, proctype_clone).run(&mut terminal)?;
+    }
     
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
@@ -416,7 +433,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if is_media_type && advanced_schedule == AdvancedSchedule::Yes {
         auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
-    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file_path, slide_delay);
+    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file, slide_delay, web_url);
 
     // write_task 
     if let Err(e) = write_task(task) {

@@ -80,6 +80,7 @@ impl ProcTypeWidget {
                 (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
                 (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
                 (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                (ProcType::Web, "A website or other internet resource, accepts a URL"),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
@@ -97,6 +98,7 @@ impl ProcTypeWidget {
                 (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
                 (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
                 (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                (ProcType::Web, "A website or other internet resource, accepts a URL"),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
@@ -114,6 +116,7 @@ impl ProcTypeWidget {
                 (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
                 (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
                 (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                (ProcType::Web, "A website or other internet resource, accepts a URL"),
                 (ProcType::Browser, "A browser based application or file, such as P5 or html."),
                 (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
@@ -163,6 +166,7 @@ impl ProcTypeWidget {
                 ProcType::Audio => self.selected_type = ProcType::Audio,
                 ProcType::Image => self.selected_type = ProcType::Image,
                 ProcType::Slideshow => self.selected_type = ProcType::Slideshow,
+                ProcType::Web => self.selected_type = ProcType::Web,
                 ProcType::Browser => self.selected_type = ProcType::Browser,
                 ProcType::Executable => self.selected_type = ProcType::Executable,
             }
@@ -239,6 +243,7 @@ impl ProcTypeWidget {
                 ProcType::Audio => ProcType::Audio.as_ref(),
                 ProcType::Image => ProcType::Image.as_ref(),
                 ProcType::Slideshow => ProcType::Slideshow.as_ref(),
+                ProcType::Web => ProcType::Web.as_ref(),
                 ProcType::Browser => ProcType::Browser.as_ref(),
                 ProcType::Executable => ProcType::Executable.as_ref(),
             };
