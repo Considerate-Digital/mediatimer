@@ -389,11 +389,10 @@ impl WebWidget {
                         if key.modifiers.contains(KeyModifiers::CONTROL) {
                         //paste the contents into input
                             let result = get_contents(ClipboardType::Regular, Seat::Unspecified, MimeType::Text);
-                            let contents = String::new(); 
                             match result {
                                 Ok((mut pipe, _)) => {
+                                    let mut contents = vec![];
                                     pipe.read_to_end(&mut contents).unwrap();
-                                println!("Pasted: {}", String::from_utf8_lossy(&contents));
                             }
 
                             Err(ClipboardError::NoSeats) | Err(ClipboardError::ClipboardEmpty) | Err(ClipboardError::NoMimeType) => {
@@ -413,7 +412,7 @@ impl WebWidget {
                             self.current_screen = CurrentScreen::Error;
                         } else {
                             self.url = self.input.clone();
-                            self.message_text = format!("Url {} selected", &self.url);
+                            self.message_text = format!("Url selected: {}", &self.url);
                             self.current_screen = CurrentScreen::Message;
                             self.character_index = 0;
                         }
@@ -432,7 +431,7 @@ impl WebWidget {
             CurrentScreen::Message => {
                 // use any key press to leave message screen
                 match self.previous_screen {
-                    CurrentScreen::Add => self.current_screen = CurrentScreen::Add,
+                    CurrentScreen::Add => self.current_screen = CurrentScreen::Menu,
                     CurrentScreen::Import => self.current_screen = CurrentScreen::Menu,
                     _ => self.reverse_state()
                 }
@@ -465,7 +464,7 @@ impl WebWidget {
                             self.reverse_state();
                             self.character_index = 0;
                         }
-                        self.message_text = format!("Url {} import successful", &self.url);
+                        self.message_text = format!("Url imported: {}", &self.url);
                         self.current_screen = CurrentScreen::Message;
                         },
                     _ => {}
@@ -506,26 +505,20 @@ impl WebWidget {
         self.input = String::from(self.input.trim());
     }
     fn url_format_correct(&self) -> bool {
-        let re = Regex::new(r"^https://\w*.\w*$").unwrap();
+        let re = Regex::new(r"^(https?://)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$").unwrap();
         re.is_match(&self.input)
     }
 
     
     fn reverse_state(&mut self) {
-        /*
         match self.current_screen {
-            CurrentScreen::Add => self.current_screen = CurrentScreen::Menu,
-            CurrentScreen::Import => self.current_screen = CurrentScreen::Menu,
-            CurrentScreen::Message => self.current_screen = CurrentScreen::Menu,
-            CurrentScreen::Error => self.current_screen = CurrentScreen::Menu,
-            CurrentScreen::Exit => self.current_screen = CurrentScreen::Menu,
-            &_ => {}
-
+            CurrentScreen::Menu => self.current_screen = CurrentScreen::Exit,
+            _ => self.current_screen = CurrentScreen::Menu
         }
-        */
+        /*
         self.current_screen = CurrentScreen::Menu;
+        */
         self.previous_screen = self.current_screen.clone();
-
     }
     fn select_next(&mut self) {
         match self.current_screen {
@@ -559,10 +552,6 @@ impl WebWidget {
         }
     }
 
-    
-
-    // TODO cursor movement is not yet implemented due to having to set the position on the 
-    // frame, and needed to pass the frame to the render function somehow
     fn move_cursor_left(&mut self) {
         let cursor_moved_left = self.character_index.saturating_sub(1);
         self.character_index = self.clamp_cursor(cursor_moved_left);
@@ -619,9 +608,72 @@ impl WebWidget {
             .centered()
             .render(area, buf);
     }
+    
+    fn render_info(&self, area: Rect, buf: &mut Buffer) {
+        let mut text = Vec::with_capacity(20);
 
-    fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.")
+        match self.current_screen {
+            CurrentScreen::Menu => {
+                text = vec![ 
+                    Line::from("Select \"Add\" to type or paste a URL from the browser."),
+                    Line::from("Select \"Import\" to import a URL directly from a text file."),
+                    Line::from("Select \"Exit\" to leave this screen."),
+                ];
+
+            },
+            CurrentScreen::Add => {
+                text = vec![
+                    Line::from("Type the web URL or use Ctl+v to paste a URL from the browser. The URL must match the format provided in your browser and start with https://")
+                ];
+            },
+            CurrentScreen::Import => {
+                text = vec![
+                    Line::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.")
+                ];
+            },
+            CurrentScreen::Exit => {
+                text = vec![
+                    Line::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.")
+                ];
+            },
+            _ => {}
+        }
+        // show the list item's info under the list
+        let block = Block::new()
+            .title(Line::raw("INFO").centered().style(FOOTER_STYLE))
+            .borders(Borders::TOP)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .bg(NORMAL_ROW_BG)
+            .padding(Padding::horizontal(1));
+
+        // now render the item info
+        Paragraph::new(text)
+            .block(block)
+            .fg(TEXT_FG_COLOR)
+            .wrap(Wrap { trim: false })
+            .render(area, buf);
+    }
+    fn render_footer(&self, area: Rect, buf: &mut Buffer) {
+        let mut text = String::with_capacity(20);
+
+        match self.current_screen {
+            CurrentScreen::Menu => {
+                text = String::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.");
+            },
+            CurrentScreen::Add => {
+                text = String::from("Type the web URL or use Ctl+v to paste a URL from the browser.");
+            },
+            CurrentScreen::Import => {
+                text = String::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.");
+            },
+            CurrentScreen::Exit => {
+                text = String::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.");
+            },
+            _ => {}
+        }
+
+        Paragraph::new(text.as_str())
             .style(FOOTER_STYLE)
             .centered()
             .render(area, buf);
@@ -677,12 +729,11 @@ impl WebWidget {
         let mut text = Vec::with_capacity(10);
     
             text = vec![ 
-                Line::from("Select a file using our file explorer or press 'm' to open the menu."),
+                Line::from("Select a text file containing a URL using our file explorer."),
                 Line::from("Use the arrow keys ⇅ to find the file you want to use."),
                 Line::from("Press ENTER to select the file."),
                 Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
                 Line::from("USB sticks will show up automatically. Manually find them in the directory '/media'."),
-
             ];
 
         // show the list item's info under the list
@@ -753,7 +804,7 @@ impl WebWidget {
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
         let message = match self.error_type {
-            ErrorType::Format => "Formating Error! Please check the URL format.",
+            ErrorType::Format => "Formating Error! Please check the URL format. Note that URLs must start with \"https://\".",
             ErrorType::Unknown => "Unknown Error! Please check that the timing does not clash with another existing timing."
         };
 
@@ -799,6 +850,17 @@ impl WebWidget {
         // we have to diferentiate this "render" from the render fn on self
         StatefulWidget::render(list, area, buf, &mut self.exit_list.state);
 
+    }
+
+    fn render_background(&self, area:Rect, buf: &mut Buffer) {
+        // set the current input as the entry selected.
+        let block = Block::new()
+            .title(Line::raw("URL setup").centered())
+            .borders(Borders::TOP)
+            .border_set(symbols::border::EMPTY)
+            .border_style(ITEM_HEADER_STYLE)
+            .bg(NORMAL_ROW_BG)
+            .render(area, buf);
     }
     /*
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
@@ -849,53 +911,37 @@ impl Widget for &mut WebWidget {
 
         match self.current_screen {
             CurrentScreen::Menu => {
-                let [header_area, main_area, footer_area] = Layout::vertical([
+                let [header_area, main_area, info_area, footer_area] = Layout::vertical([
                     Constraint::Length(2),
                     Constraint::Fill(1),
+                    Constraint::Length(8),
                     Constraint::Length(1),
                 ])
                 .areas(area);
+                
 
-                let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
-                    Constraint::Fill(1)
-                ])
-                .areas(main_area);
-
-                let [weekdays_area, day_area] = Layout::horizontal([
-                    Constraint::Fill(1),
-                    Constraint::Fill(1)
-                ])
-                .areas(list_area);
-
+                WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(footer_area, buf);
+                WebWidget::render_footer(&self, footer_area, buf);
+                WebWidget::render_info(&self, info_area, buf);
                 
                 Clear.render(popup_area, buf);
                 self.render_menu_op_list(popup_area, buf);
            },
            CurrentScreen::Add => {
-                let [header_area, main_area, footer_area] = Layout::vertical([
+                let [header_area, main_area, info_area, footer_area] = Layout::vertical([
                     Constraint::Length(2),
                     Constraint::Fill(1),
+                    Constraint::Length(8),
                     Constraint::Length(1),
                 ])
                 .areas(area);
+                
 
-                let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
-                    Constraint::Fill(1)
-                ])
-                .areas(main_area);
-
-                let [weekdays_area, day_area] = Layout::horizontal([
-                    Constraint::Fill(1),
-                    Constraint::Fill(1)
-                ])
-                .areas(list_area);
-
+                WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(footer_area, buf);
+                WebWidget::render_footer(&self, footer_area, buf);
+                WebWidget::render_info(&self, info_area, buf);
                 Clear.render(popup_area, buf);
                 // set the cursor area
                 self.input_area = popup_area;
@@ -929,20 +975,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(area);
 
-                let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
-                    Constraint::Fill(1)
-                ])
-                .areas(main_area);
-
-                let [weekdays_area, day_area] = Layout::horizontal([
-                    Constraint::Fill(1),
-                    Constraint::Fill(1)
-                ])
-                .areas(list_area);
-
+                WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(footer_area, buf);
+                WebWidget::render_footer(&self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
                 self.render_message(popup_area, buf);
@@ -962,14 +997,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(main_area);
 
-                let [weekdays_area, day_area] = Layout::horizontal([
-                    Constraint::Fill(1),
-                    Constraint::Fill(1)
-                ])
-                .areas(list_area);
-
+                WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(footer_area, buf);
+                WebWidget::render_footer(&self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
                 self.render_error(popup_area, buf);
@@ -983,14 +1013,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(area);
 
-                let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
-                    Constraint::Fill(1)
-                ])
-                .areas(main_area);
-
+                WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(footer_area, buf);
+                WebWidget::render_footer(&self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
 
