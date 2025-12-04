@@ -385,6 +385,7 @@ impl WebWidget {
                     KeyCode::Left => self.move_cursor_left(),
                     KeyCode::Right => self.move_cursor_right(),
                     KeyCode::Backspace => self.delete_char(),
+                    /* TODO clipboard not working
                     KeyCode::Char('v') => {
                         if key.modifiers.contains(KeyModifiers::CONTROL) {
                         //paste the contents into input
@@ -403,6 +404,7 @@ impl WebWidget {
                             }
                         }
                     },
+                    */
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
                         self.previous_screen = CurrentScreen::Add;
@@ -623,7 +625,7 @@ impl WebWidget {
             },
             CurrentScreen::Add => {
                 text = vec![
-                    Line::from("Type the web URL or use Ctl+v to paste a URL from the browser. The URL must match the format provided in your browser and start with https://")
+                    Line::from("Type the web URL or use Shift+Ctl+v to paste a URL from the browser. The URL must match the format provided in your browser and start with https://")
                 ];
             },
             CurrentScreen::Import => {
@@ -662,7 +664,7 @@ impl WebWidget {
                 text = String::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.");
             },
             CurrentScreen::Add => {
-                text = String::from("Type the web URL or use Ctl+v to paste a URL from the browser.");
+                text = String::from("Type the web URL or use Shift+Ctl+v to paste a URL from the browser.");
             },
             CurrentScreen::Import => {
                 text = String::from("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom, and ESC to exit.");
