@@ -433,8 +433,8 @@ impl WebWidget {
             CurrentScreen::Message => {
                 // use any key press to leave message screen
                 match self.previous_screen {
-                    CurrentScreen::Add => self.current_screen = CurrentScreen::Menu,
-                    CurrentScreen::Import => self.current_screen = CurrentScreen::Menu,
+                    CurrentScreen::Add => self.current_screen = CurrentScreen::Exit,
+                    CurrentScreen::Import => self.current_screen = CurrentScreen::Exit,
                     _ => self.reverse_state()
                 }
             },
