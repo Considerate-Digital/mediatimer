@@ -61,18 +61,6 @@ pub enum Weekday {
 }
 
 impl Weekday {
-    fn to_string(&self) -> String {
-        match self {
-            Weekday::Monday(_) => String::from("Monday"),
-            Weekday::Tuesday(_) => String::from("Tuesday"),
-            Weekday::Wednesday(_) => String::from("Wednesday"),
-            Weekday::Thursday(_) => String::from("Thursday"),
-            Weekday::Friday(_) => String::from("Friday"),
-            Weekday::Saturday(_) => String::from("Saturday"),
-            Weekday::Sunday(_) => String::from("Sunday")
-        }
-    }
-
     fn timings(&self) -> TimingCollection {
         match self {
             Weekday::Monday(schedule) => schedule.clone(),
@@ -133,7 +121,7 @@ impl Timing {
     }
     fn format(self) -> String {
         let mut joined = String::from(&self.timing.0);
-        joined.push_str("-");
+        joined.push('-');
         joined.push_str(&self.timing.1);
         joined
     }
@@ -141,7 +129,7 @@ impl Timing {
 
 impl From<&Timing> for ListItem<'_> {
     fn from(value: &Timing) -> Self {
-        let line = Line::styled(format!("{}", value.clone().format()), TEXT_FG_COLOR);
+        let line = Line::styled(value.clone().format().to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -262,7 +250,7 @@ impl TimingOpItem {
 
 impl From<&TimingOpItem> for ListItem<'_> {
     fn from(value: &TimingOpItem) -> Self {
-        let line = Line::styled(format!("{}", value.op_item), TEXT_FG_COLOR);
+        let line = Line::styled(value.op_item.clone(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -306,7 +294,7 @@ impl DuplicateOpList {
 }
 impl From<&DuplicateOpItem> for ListItem<'_> {
     fn from(value: &DuplicateOpItem) -> Self {
-        let line = Line::styled(format!("{}", value.as_desc()), TEXT_FG_COLOR);
+        let line = Line::styled(value.as_desc().to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -374,7 +362,7 @@ impl DuplicateDayOpList {
 
 impl From<&DuplicateDayOpItem> for ListItem<'_> {
     fn from(value: &DuplicateDayOpItem) -> Self {
-        let line = Line::styled(format!("{}", value.as_desc()), TEXT_FG_COLOR);
+        let line = Line::styled(value.as_desc().to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -407,7 +395,7 @@ impl DelOpList {
 
 impl From<&DelOpItem> for ListItem<'_> {
     fn from(value: &DelOpItem) -> Self {
-        let line = Line::styled(format!("{}", value.item), TEXT_FG_COLOR);
+        let line = Line::styled(value.item.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -438,7 +426,7 @@ impl ExitList {
 
 impl From<&ExitItem> for ListItem<'_> {
     fn from(value: &ExitItem) -> Self {
-        let line = Line::styled(format!("{}", value.item), TEXT_FG_COLOR);
+        let line = Line::styled(value.item.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -525,7 +513,7 @@ impl FromIterator<Weekday> for TimingsList {
     fn from_iter<I: IntoIterator<Item = Weekday>>(iter: I) -> Self {
         let list = iter
             .into_iter()
-            .map(|list_element| TimingsEntry::new(list_element))
+            .map(TimingsEntry::new)
             .collect();
         let mut state = ListState::default();
         state.select_first();
@@ -541,7 +529,7 @@ pub struct TimingsEntry {
 
 impl From<&TimingsEntry> for ListItem<'_> {
     fn from(value: &TimingsEntry) -> Self {
-        let line = Line::styled(format!("{}", value.list_element.as_str()), TEXT_FG_COLOR);
+        let line = Line::styled(value.list_element.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -560,7 +548,7 @@ fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
     let days_with_timings_collection: Vec<_> = c_timings.iter()
         .map(|ct| common_to_local_weekday(ct.clone()))
         .map(|schedule| schedule.timings())
-        .filter(|t| t.timing_collection.len() > 0)
+        .filter(|t| !t.timing_collection.is_empty() )
         .collect();
     let days_without_timings_count = 7 - days_with_timings_collection.len(); 
 
@@ -638,16 +626,14 @@ impl TimingsWidget {
             })?;
 
             let event = event::read()?;
-                match self.current_screen {
-                    CurrentScreen::Import => {
-                        let _ = self.file_explorer.handle(&event);
-                    },
-                    _ => {}
-                }
-                if let Event::Key(key) = event {
-                    self.handle_key(key);
-                    //self.text_area.input(key);
-                }
+            if self.current_screen == CurrentScreen::Import {
+                let _ = self.file_explorer.handle(&event);
+            }
+
+            if let Event::Key(key) = event {
+                self.handle_key(key);
+                //self.text_area.input(key);
+            }
         }
         Ok(self.schedule)
     }
@@ -663,7 +649,7 @@ impl TimingsWidget {
                 .padding(Padding::horizontal(1))
                 )
             .with_highlight_item_style(SELECTED_STYLE)
-            .with_highlight_symbol("> ".into())
+            .with_highlight_symbol("> ")
             .with_highlight_spacing(HighlightSpacing::Always)
             .with_dir_style(Style::default().fg(TEXT_DIR_COLOR).add_modifier(Modifier::BOLD))
             .with_highlight_dir_style(SELECTED_STYLE)
@@ -677,15 +663,13 @@ impl TimingsWidget {
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(&parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir).unwrap();
                 // then highlight the selected file
-                if let Some(file_os_str) = self.selected_file.file_name() { 
-                    if let Some(file_name) = file_os_str.to_str() {
+                if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
                         if let Some(index) = files.iter().position(|f| f.name() == file_name) {
                             self.file_explorer.set_selected_idx(index);
                         }
-                    }
                 }
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
@@ -815,7 +799,7 @@ impl TimingsWidget {
                                 TimingOp::Add => self.current_screen = CurrentScreen::Add,
                                 TimingOp::Del => self.current_screen = CurrentScreen::Delete,
                                 TimingOp::Edit => {
-                                    if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+                                    if !self.list_element_entries.list[self.weekday_selected].timings.timing_collection.is_empty() {
                                         self.input.clear();
                                         self.input.push_str(&self.list_element_entries.list[self.weekday_selected].timings.timing_collection[self.timing_selected].clone().format()); 
                                         self.character_index = self.input.chars().count();
@@ -915,15 +899,10 @@ impl TimingsWidget {
                     KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => {
                         // add code to select the list item
                         // render popup now using current selection
-                        if let Some(i) = self.del_op_list.state.selected() {
-                            match self.del_op_list.del_list[i].item.as_str() {
-                                "Yes" => {
-                                    if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+                        if let Some(i) = self.del_op_list.state.selected() &&
+                            self.del_op_list.del_list[i].item.as_str() == "Yes" && 
+                                !self.list_element_entries.list[self.weekday_selected].timings.timing_collection.is_empty() {
                                         self.list_element_entries.list[self.weekday_selected].timings.timing_collection.remove(self.timing_selected);
-                                    }
-                                },
-                                _ => {}
-                            }
                         }
                         self.reverse_state();
                     }
@@ -1034,12 +1013,10 @@ impl TimingsWidget {
             },
             CurrentScreen::Export => self.reverse_state(),
             CurrentScreen::Import => {
-                let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
-                let dir_is_dead_end = dirs_in_current.len() < 2; 
                 let is_dir = self.file_explorer.current().is_dir();
                 match key.code {
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
-                    KeyCode::Enter if is_dir == false || (is_dir == false && dir_is_dead_end == true) => {
+                    KeyCode::Enter if !is_dir => {
                         let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         let schedule = import::import_schedule(self.selected_file.clone());
@@ -1083,7 +1060,7 @@ impl TimingsWidget {
     }
     // this needs to extract the whole string and parse to two u32s that are the full times 
     // combined into one u32
-    fn extract_timings_from_input(&self, input: &String) -> (u32, u32) {
+    fn extract_timings_from_input(&self, input: &str) -> (u32, u32) {
         let two_timings = input.split("-").collect::<Vec<&str>>();
 
          let t_start = two_timings[0].split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
@@ -1094,24 +1071,16 @@ impl TimingsWidget {
 
     fn timing_format_correct(&self) -> bool {
         let re = Regex::new(r"^(?<h>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]$").unwrap();
-        let re_matches = re.is_match(&self.input);
-        if re_matches { 
-            let times: Vec<(u32, u32)> = re.captures_iter(&self.input).map(|times| {
-                let hour_1 = times.name("h").unwrap().as_str();
-                let hour_1 = hour_1.parse::<u32>().unwrap();
-                let hour_2 = times.name("h2").unwrap().as_str();
-                let hour_2 = hour_2.parse::<u32>().unwrap();
-                (hour_1, hour_2)
-            }).collect();
-            for time_pair in times.iter() {
-                if time_pair.0 < 24 && 
-                    time_pair.1 < 24 {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            false
+        if re.is_match(&self.input) { 
+            let (_, [start, end]) = re.captures(&self.input).unwrap().extract();
+            //let hour_1 = times.name("h").unwrap().as_str();
+            let hour_1 = start.parse::<u32>().unwrap();
+            //let hour_2 = times.name("h2").unwrap().as_str();
+            let hour_2 = end.parse::<u32>().unwrap();
+            
+            // This checks if the hour is less than 24
+            // The minutes and seconds are already checked by the regex
+            hour_1 < 24 && hour_2 < 24
         } else {
             false
         }
@@ -1126,7 +1095,11 @@ impl TimingsWidget {
         for (i, t) in self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter().enumerate() {
             if self.current_screen == CurrentScreen::Edit && i == self.timing_selected { return true }
             let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+            
             let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+
+            // TODO check this logic
+            #[allow(clippy::if_same_then_else)]
             if start <= t_start && end >= t_start {
                 return false;
             } else if start <= t_start && end >= t_end {
@@ -1145,8 +1118,7 @@ impl TimingsWidget {
             .split("-")
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
-        let t = Timing::new(&new_t[0], &new_t[1]);
-        t
+        Timing::new(&new_t[0], &new_t[1])
     }
     
     fn reverse_state(&mut self) {
@@ -1237,7 +1209,7 @@ impl TimingsWidget {
 
     fn duplicate_schedule_to_all_days(&mut self) {
          let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
-        for (_, entry) in self.list_element_entries.list.iter_mut().enumerate() {
+        for entry in self.list_element_entries.list.iter_mut() {
             entry.timings = current_weekday_schedule.clone();
         }
     }
@@ -1336,7 +1308,7 @@ impl TimingsWidget {
 
     fn render_day_list(&mut self, area: Rect, buf: &mut Buffer) {
             
-        if self.list_element_entries.list[self.weekday_selected].timings.timing_collection.len() > 0 {
+        if !self.list_element_entries.list[self.weekday_selected].timings.timing_collection.is_empty() {
             let block = Block::new()
                 .title(Line::raw("Edit Timings").centered())
                 .borders(Borders::TOP | Borders::LEFT)
@@ -1360,7 +1332,7 @@ impl TimingsWidget {
                 .map(|(i, timings)| {
                     let color = alternate_colors(i);
                     let mut timings_joined = String::from(&timings.timing.0);
-                    timings_joined.push_str("-");
+                    timings_joined.push('-');
                     timings_joined.push_str(&timings.timing.1);
                     
                     ListItem::from(timings_joined).bg(color)
@@ -1377,7 +1349,7 @@ impl TimingsWidget {
             // we have to diferentiate this "render" from the render fn on self
             StatefulWidget::render(list, area, buf, &mut self.list_element_entries.list[self.weekday_selected].timings.state);
         } else {
-            let _input = Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
+            Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
                .style(SELECTED_STYLE)
                .bg(NORMAL_ROW_BG)
                .fg(TEXT_FG_COLOR)
@@ -1425,7 +1397,7 @@ impl TimingsWidget {
 
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
-       let _input = Paragraph::new(self.input.as_str()) 
+       Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -1439,7 +1411,7 @@ impl TimingsWidget {
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let _input = Paragraph::new(self.input.as_str()) 
+        Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -1595,7 +1567,7 @@ impl TimingsWidget {
         let username = whoami::username();
         let message = format!("Schedule has been exported to /home/{}/schedule.mt", username);
 
-        let _input = Paragraph::new(Line::raw(message)) 
+        Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -1610,7 +1582,7 @@ impl TimingsWidget {
     fn render_message(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let _input = Paragraph::new(Line::raw(&self.message_text)) 
+        Paragraph::new(Line::raw(&self.message_text)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -1629,7 +1601,7 @@ impl TimingsWidget {
             ErrorType::Clash => "Clash Error! Please check that the timing does not clash with another existing timing."
         };
 
-        let _input = Paragraph::new(Line::raw(message)) 
+        Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -1704,7 +1676,7 @@ impl TimingsWidget {
 }
 
 const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
+    if i.is_multiple_of(2) {
         NORMAL_ROW_BG
     } else {
         ALT_ROW_BG_COLOR

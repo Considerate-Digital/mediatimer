@@ -73,8 +73,8 @@ impl FileSelectWidget {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
-            can_be_dir: can_be_dir,
-            proc_type: proc_type,
+            can_be_dir,
+            proc_type,
             error: false,
             error_message: String::from("")
         }
@@ -103,22 +103,21 @@ impl FileSelectWidget {
             return;
         }
         let is_dir = self.file_explorer.current().is_dir();
-        let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
+        let dirs_in_current = self.file_explorer.files().iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
         let dir_is_dead_end = dirs_in_current.len() < 2; 
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_exit = true;
             }
-            KeyCode::Enter if is_dir == false || (is_dir == false && self.can_be_dir == true && dir_is_dead_end == true) => {
+            KeyCode::Enter if !is_dir && dir_is_dead_end => {
                 if self.error {
                     self.error = false;
-                } else if self.can_be_dir == true {
+                } else if self.can_be_dir {
                     let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
                     current_path_buf.pop();
                     self.selected_file = current_path_buf;
                     self.should_exit = true;
-                } else {
-                    if self.proc_type == ProcType::Video {
+                } else if self.proc_type == ProcType::Video {
                         if self.video_compatible() {
                             self.selected_file = self.file_explorer.current().path().to_path_buf();
                             self.should_exit = true;
@@ -127,7 +126,6 @@ impl FileSelectWidget {
                         self.selected_file = self.file_explorer.current().path().to_path_buf();
                         self.should_exit = true;
                     }
-                }
             }
             _ => {}
         }
@@ -207,7 +205,7 @@ impl FileSelectWidget {
             .arg("-loglevel")
             .arg("error")
             .arg("-show_streams")
-            .arg(&file_path)
+            .arg(file_path)
             .output()
             .expect("height in pixels");
 
@@ -225,10 +223,10 @@ impl FileSelectWidget {
                 }
                 
         } else {
-            self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
+            self.error_message = "Video resolution could not be identified. Please check file is a supported video format.".to_string();
             self.error = true;
         }
-        return false;
+        false
     }
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
@@ -248,14 +246,14 @@ impl FileSelectWidget {
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
         let popup_area: Rect = areas::popup_area(area);
-        let _background = Paragraph::new(Line::raw(""))
+        Paragraph::new(Line::raw(""))
             .bg(NORMAL_ROW_BG)
             .block(
                 Block::new()
             )
             .render(area, buf);
 
-        let _input = Paragraph::new(Line::raw(&self.error_message)) 
+        Paragraph::new(Line::raw(&self.error_message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -279,7 +277,7 @@ impl FileSelectWidget {
                 .padding(Padding::horizontal(1))
                 )
             .with_highlight_item_style(SELECTED_STYLE)
-            .with_highlight_symbol("> ".into())
+            .with_highlight_symbol("> ")
             .with_highlight_spacing(HighlightSpacing::Always)
             .with_dir_style(Style::default().fg(TEXT_DIR_COLOR).add_modifier(Modifier::BOLD))
             .with_highlight_dir_style(SELECTED_STYLE)
@@ -294,15 +292,13 @@ impl FileSelectWidget {
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(&parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir).unwrap();
                 // then highlight the selected file
-                if let Some(file_os_str) = self.selected_file.file_name() { 
-                    if let Some(file_name) = file_os_str.to_str() {
+                if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
                         if let Some(index) = files.iter().position(|f| f.name() == file_name) {
                             self.file_explorer.set_selected_idx(index);
                         }
-                    }
                 }
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
@@ -327,9 +323,17 @@ impl FileSelectWidget {
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
 
-        let text;
+        let mut text = vec![ 
+                Line::from("Select a file using our file explorer."),
+                Line::from("Use the arrow keys ⇅ to find the file you want to use."),
+                Line::from("Press ENTER to select the file."),
+                Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
+                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
+
+            ];
+
     
-        if self.can_be_dir == true {
+        if self.can_be_dir {
             text = vec![ 
                 Line::from("Select a folder using our explorer."),
                 Line::from("The target folder must not contain other folders."),
@@ -339,18 +343,7 @@ impl FileSelectWidget {
                 Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
 
             ];
-
-        } else {
-            text = vec![ 
-                Line::from("Select a file using our file explorer."),
-                Line::from("Use the arrow keys ⇅ to find the file you want to use."),
-                Line::from("Press ENTER to select the file."),
-                Line::from("To ascend a directory navigate to \"↑ Parent Folder ↑\" and press Enter"),
-                Line::from("USB sticks will show up automatically. Manually find them in the directory 'media'."),
-
-            ];
         }
-
         // show the list item's info under the list
         let block = Block::new()
             .title(Line::raw("INSTRUCTIONS").centered())
@@ -390,7 +383,7 @@ impl Widget for &mut FileSelectWidget {
         FileSelectWidget::render_header(header_area, buf);
         FileSelectWidget::render_footer(footer_area, buf);
 
-        if self.error == true {
+        if self.error {
             let popup_area: Rect = areas::popup_area(area);
             Clear.render(popup_area, buf);
             self.render_error(main_area, buf);

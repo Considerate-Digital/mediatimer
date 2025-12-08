@@ -102,23 +102,9 @@ pub enum Weekday {
     Sunday(Schedule),
 }
 
-impl Weekday {
-    fn to_string(&self) -> String {
-        match self {
-            Weekday::Monday(_) => String::from("Monday"),
-            Weekday::Tuesday(_) => String::from("Tuesday"),
-            Weekday::Wednesday(_) => String::from("Wednesday"),
-            Weekday::Thursday(_) => String::from("Thursday"),
-            Weekday::Friday(_) => String::from("Friday"),
-            Weekday::Saturday(_) => String::from("Saturday"),
-            Weekday::Sunday(_) => String::from("Sunday")
-        }
-    }
-}
-
 pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
     let string_vec: Vec<String> = value.as_str().split(",").map(|x| x.trim().to_string()).collect(); 
-    if &value != "" {
+    if !&value.is_empty() {
         let string_vec_test = string_vec.clone();
 
         // check the schedule format matches 00:00 or 00:00:00
@@ -128,7 +114,7 @@ pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>
         let parsed_count = string_vec_test.len();  
         let mut re_count = 0;
         for time in string_vec_test.iter() {
-            if re.is_match(&time) == true {
+            if re.is_match(time) {
                 re_count += 1;
             }
         }
@@ -194,11 +180,11 @@ impl Task {
 fn write_task(task: Task) -> Result<(), IoError> {
    if let Some(dir) = home::home_dir() {
         // check if dir exists
-        let mut dir_path = PathBuf::from(dir);
+        let mut dir_path = dir;
         dir_path.push(".mediatimer_config");
 
         // check if the mediatimer directory exists in home
-        if dir_path.as_path().is_dir() == false {
+        if !dir_path.as_path().is_dir() {
             // create the mediatimer directory if it does not exist
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
                eprintln!("Directory could not be created: {}", er);
@@ -216,7 +202,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
             .open(&dir_path)?;
     
        // write proctype
-       let _ = writeln!(file, "MT_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
+       writeln!(file, "MT_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
        //write autoloop
        let _ = writeln!(file, "MT_AUTOLOOP=\"{}\"", match task.auto_loop {
@@ -251,14 +237,14 @@ fn write_task(task: Task) -> Result<(), IoError> {
        
 
        // write file
-       let _ = writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
+       writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
 
        // write slide delay
 
-       let _ = writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
+       writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
 
        // write url
-       let _ = writeln!(file, "MT_URL=\"{}\"", task.url)?;
+       writeln!(file, "MT_URL=\"{}\"", task.url)?;
       } else {
        eprintln!("Could not find home directory.");
        IoError::other("Could not find home directory");
@@ -271,7 +257,6 @@ fn write_task(task: Task) -> Result<(), IoError> {
 /// that the mediatimer_init uses. The mount points for usb drives must be standardised in
 /// order for this program to work. The program is designed this way so that it can be utilised 
 /// by non-technical users.
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     // issue command to pause mediatimer_init
@@ -307,7 +292,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
     
     if env_dir_path.exists() {
-        if let Err(_) = dotenvy::from_path_override(env_dir_path.as_path()) {
+        if dotenvy::from_path_override(env_dir_path.as_path()).is_err() {
             eprintln!("Cannot find env vars at path: {}", env_dir_path.display());
         }
         // parse the environmental vars
@@ -357,14 +342,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _backend = CrosstermBackend::new(stdout);
     let mut terminal = ratatui::init();
 
-    let _landing = LandingWidget::default().run(&mut terminal)?;
+    LandingWidget::default().run(&mut terminal)?;
     // returns Ok(ProcType) e.g. Ok(ProcType::Video)
     
     let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
-    let can_be_dir: bool = match &proctype {
-        ProcType::Slideshow => true,
-        _ => false
-    };
+    let can_be_dir: bool = matches!(&proctype, ProcType::Slideshow);
     
     if proctype == ProcType::Web {
         //returns Ok(String);
@@ -383,11 +365,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         timings = TimingsWidget::new(timings).run(&mut terminal)?;
     }
     
-    let is_media_type: bool = match &proctype {
-        ProcType::Video => true,
-        ProcType::Audio => true,
-        _ => false
-    };
+    let is_media_type: bool = matches!( &proctype, ProcType::Video | ProcType::Audio);
+
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
     if is_media_type && advanced_schedule == AdvancedSchedule::Yes {
         auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
@@ -400,7 +379,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     
     // loading issues the command to enable the mediatimer_init service
-    let _loading = LoadingWidget::default().run(&mut terminal)?;
+    LoadingWidget::default().run(&mut terminal)?;
 
     disable_raw_mode()?;
     execute!(

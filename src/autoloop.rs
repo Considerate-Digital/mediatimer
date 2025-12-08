@@ -56,7 +56,7 @@ struct AutoloopEntry {
 
 impl From<&AutoloopEntry> for ListItem<'_> {
     fn from(value: &AutoloopEntry) -> Self {
-        let line = Line::styled(format!("{}", value.list_element.to_string()), TEXT_FG_COLOR);
+        let line = Line::styled(value.list_element.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -228,7 +228,7 @@ impl AutoloopWidget {
 }
 
 const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
+    if i.is_multiple_of(2) {
         NORMAL_ROW_BG
     } else {
         ALT_ROW_BG_COLOR

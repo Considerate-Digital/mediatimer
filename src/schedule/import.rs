@@ -24,7 +24,7 @@ pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
     let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
     
     if schedule_path.exists() {
-        if let Err(_) = dotenvy::from_path_override(schedule_path.as_path()) {
+        if dotenvy::from_path_override(schedule_path.as_path()).is_err() {
             eprintln!("Cannot find env vars at path: {}", schedule_path.display());
         }
         // parse the environmental vars

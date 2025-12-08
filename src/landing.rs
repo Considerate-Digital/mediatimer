@@ -22,17 +22,9 @@ use crate::styles::{
     TEXT_FG_COLOR,
 };
 
-
+#[derive(Default)]
 pub struct LandingWidget {
     should_exit: bool,
-}
-
-impl Default for LandingWidget {
-    fn default() -> Self {
-        Self {
-            should_exit: false,
-        }
-    }
 }
 
 impl LandingWidget {
@@ -77,26 +69,6 @@ impl LandingWidget {
     }
 
     fn render_logo(area: Rect, buf: &mut Buffer) {
-        /*
-        let logo = indoc::indoc! {"
-        ⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡏⠉⠉⠉⠉⠉⢹⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⠸⠿⠇⠀⠀⠀⠀⠀⠸⠿⠇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢰⣶⡆⠀⠀⠀⠀⠀⢰⣶⡆⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣷⣶⣶⣶⣶⣶⣾⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⣿
-        ⣿⠀⠀⣤⣤⠀⠀⠀⠀⠘⠛⠛⠛⠛⠛⠛⠛⠛⠛⠃⠀⠀⠀⠀⣤⣤⠀⠀⣿
-        ⣿⠀⠀⠛⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠛⠀⠀⣿
-        ⣿⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣿
-        "};
-        */
-        
         let logo = indoc::indoc! {"
         ⣿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⣿
         ⣿⠀⢾⡷⠀⠀⠀⣀⣀⣀⣀⣀⣀⣀⠀⠀⠀⢾⡷⠀⣿
@@ -118,7 +90,7 @@ impl LandingWidget {
     }
     fn render_text(area: Rect, buf: &mut Buffer) {
 
-        let _para = Paragraph::new(
+        Paragraph::new(
             vec![
                 Line::from("Adaptables: Media Timer"),
                 Line::from("Run it like clockwork."),

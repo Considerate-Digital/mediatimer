@@ -49,7 +49,7 @@ impl Default for LoadingWidget {
 }
 
 impl LoadingWidget {
-    pub fn new(self) -> Self {
+    pub fn new() -> Self {
         Self {
             should_exit: Arc::new(AtomicBool::new(false))
         }
@@ -58,7 +58,7 @@ impl LoadingWidget {
         // set the command going
         let should_exit_clone = Arc::clone(&self.should_exit);
         self.run_command(should_exit_clone);
-        while self.should_exit.load(Ordering::Relaxed) == false {
+        while !self.should_exit.load(Ordering::Relaxed) {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
             if let Event::Key(key) = event::read()? {
                 self.handle_key(key);
@@ -123,7 +123,7 @@ impl LoadingWidget {
             .padding(Padding::uniform(4))
             .bg(NORMAL_ROW_BG);
 
-        let _para = Paragraph::new(
+        Paragraph::new(
             vec![
                 Line::from("Please Wait"
                 ),
@@ -146,7 +146,7 @@ impl LoadingWidget {
 impl Widget for &mut LoadingWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
 
-        let [header_area, footer_area] = Layout::vertical([
+        let [header_area, _, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
             Constraint::Length(1),

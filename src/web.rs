@@ -114,7 +114,7 @@ impl MenuItem {
 
 impl From<&MenuItem> for ListItem<'_> {
     fn from(value: &MenuItem) -> Self {
-        let line = Line::styled(format!("{}", value.op_item), TEXT_FG_COLOR);
+        let line = Line::styled(value.op_item.clone(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -145,7 +145,7 @@ impl ExitList {
 
 impl From<&ExitItem> for ListItem<'_> {
     fn from(value: &ExitItem) -> Self {
-        let line = Line::styled(format!("{}", value.item), TEXT_FG_COLOR);
+        let line = Line::styled(value.item.clone(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -222,24 +222,18 @@ impl WebWidget {
         while !self.should_exit {
             terminal.draw(|f| {
                 f.render_widget(&mut self, f.area());
-                match self.current_screen {
-                    CurrentScreen::Add => {
+                    if self.current_screen == CurrentScreen::Add {
                         f.set_cursor_position(Position::new(
                                 self.input_area.x + self.character_index as u16 + 1,
                                 // move one line down, from the border to the input lin
                                 self.input_area.y + 1,
                         ))
-                    },
-                    _ => {}
                 }
             })?;
 
             let event = event::read()?;
-                match self.current_screen {
-                    CurrentScreen::Import => {
+                if self.current_screen == CurrentScreen::Import {
                         let _ = self.file_explorer.handle(&event);
-                    },
-                    _ => {}
                 }
                 if let Event::Key(key) = event {
                     self.handle_key(key);
@@ -260,7 +254,7 @@ impl WebWidget {
                 .padding(Padding::horizontal(1))
                 )
             .with_highlight_item_style(SELECTED_STYLE)
-            .with_highlight_symbol("> ".into())
+            .with_highlight_symbol("> ")
             .with_highlight_spacing(HighlightSpacing::Always)
             .with_dir_style(Style::default().fg(TEXT_DIR_COLOR).add_modifier(Modifier::BOLD))
             .with_highlight_dir_style(SELECTED_STYLE)
@@ -274,15 +268,13 @@ impl WebWidget {
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(&parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir).unwrap();
                 // then highlight the selected file
-                if let Some(file_os_str) = self.selected_file.file_name() { 
-                    if let Some(file_name) = file_os_str.to_str() {
+                if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
                         if let Some(index) = files.iter().position(|f| f.name() == file_name) {
                             self.file_explorer.set_selected_idx(index);
                         }
-                    }
                 }
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
@@ -402,12 +394,10 @@ impl WebWidget {
                 }
             },
             CurrentScreen::Import => {
-                let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
-                let dir_is_dead_end = dirs_in_current.len() < 2; 
                 let is_dir = self.file_explorer.current().is_dir();
                 match key.code {
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
-                    KeyCode::Enter if is_dir == false || (is_dir == false && dir_is_dead_end == true) => {
+                    KeyCode::Enter if !is_dir => {
                         let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         // TODO read file here
@@ -464,7 +454,7 @@ impl WebWidget {
             }
         }
     }
-    fn clean_input(&mut self) -> () {
+    fn clean_input(&mut self) {
         self.input = String::from(self.input.trim());
     }
     fn url_format_correct(&self) -> bool {
@@ -669,7 +659,7 @@ impl WebWidget {
 
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
-       let _input = Paragraph::new(self.input.as_str()) 
+       Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -727,7 +717,7 @@ impl WebWidget {
     fn render_message(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let _input = Paragraph::new(Line::raw(&self.message_text)) 
+        Paragraph::new(Line::raw(&self.message_text)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -745,7 +735,7 @@ impl WebWidget {
             ErrorType::Format => "Formating Error! Please check the URL format. Note that URLs must start with \"https://\".",
         };
 
-        let _input = Paragraph::new(Line::raw(message)) 
+        Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -791,7 +781,7 @@ impl WebWidget {
 
     fn render_background(&self, area:Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
-        let _block = Block::new()
+        Block::new()
             .title(Line::raw("URL setup").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
@@ -832,7 +822,7 @@ impl WebWidget {
 }
 
 const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
+    if i.is_multiple_of(2) {
         NORMAL_ROW_BG
     } else {
         ALT_ROW_BG_COLOR
@@ -857,10 +847,10 @@ impl Widget for &mut WebWidget {
                 .areas(area);
                 
 
-                WebWidget::render_background(&self, main_area, buf);
+                WebWidget::render_background(self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(&self, footer_area, buf);
-                WebWidget::render_info(&self, info_area, buf);
+                WebWidget::render_footer(self, footer_area, buf);
+                WebWidget::render_info(self, info_area, buf);
                 
                 Clear.render(popup_area, buf);
                 self.render_menu_op_list(popup_area, buf);
@@ -875,10 +865,10 @@ impl Widget for &mut WebWidget {
                 .areas(area);
                 
 
-                WebWidget::render_background(&self, main_area, buf);
+                WebWidget::render_background(self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(&self, footer_area, buf);
-                WebWidget::render_info(&self, info_area, buf);
+                WebWidget::render_footer(self, footer_area, buf);
+                WebWidget::render_info(self, info_area, buf);
                 Clear.render(popup_area, buf);
                 // set the cursor area
                 self.input_area = popup_area;
@@ -912,9 +902,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(area);
 
-                WebWidget::render_background(&self, main_area, buf);
+                WebWidget::render_background(self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(&self, footer_area, buf);
+                WebWidget::render_footer(self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
                 self.render_message(popup_area, buf);
@@ -928,9 +918,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(area);
 
-                WebWidget::render_background(&self, main_area, buf);
+                WebWidget::render_background(self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(&self, footer_area, buf);
+                WebWidget::render_footer(self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
                 self.render_error(popup_area, buf);
@@ -944,9 +934,9 @@ impl Widget for &mut WebWidget {
                 ])
                 .areas(area);
 
-                WebWidget::render_background(&self, main_area, buf);
+                WebWidget::render_background(self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
-                WebWidget::render_footer(&self, footer_area, buf);
+                WebWidget::render_footer(self, footer_area, buf);
 
                 Clear.render(popup_area, buf);
 

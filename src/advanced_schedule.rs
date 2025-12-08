@@ -56,7 +56,7 @@ struct AdvancedScheduleEntry {
 
 impl From<&AdvancedScheduleEntry> for ListItem<'_> {
     fn from(value: &AdvancedScheduleEntry) -> Self {
-        let line = Line::styled(format!("{}", value.list_element.to_string()), TEXT_FG_COLOR);
+        let line = Line::styled(value.list_element.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -228,7 +228,7 @@ impl AdvancedScheduleWidget {
 }
 
 const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
+    if i.is_multiple_of(2) {
         NORMAL_ROW_BG
     } else {
         ALT_ROW_BG_COLOR

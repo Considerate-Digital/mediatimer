@@ -54,7 +54,7 @@ struct ProcTypeEntry {
 
 impl From<&ProcTypeEntry> for ListItem<'_> {
     fn from(value: &ProcTypeEntry) -> Self {
-        let line = Line::styled(format!("{}", value.proc_type.to_string()), TEXT_FG_COLOR);
+        let line = Line::styled(value.proc_type.to_string(), TEXT_FG_COLOR);
         ListItem::new(line)
     }
 }
@@ -246,7 +246,7 @@ impl ProcTypeWidget {
                 ProcType::Browser => ProcType::Browser.as_ref(),
                 ProcType::Executable => ProcType::Executable.as_ref(),
             };
-            let title_str = String::from(pt_str.to_uppercase());
+            let title_str = pt_str.to_uppercase();
                 (self.proc_type_entries.list[i].info.clone(), title_str)
              } else {
                  ("Nothing selected...".to_string(), "".to_string())
@@ -275,7 +275,7 @@ impl ProcTypeWidget {
 }
 
 const fn alternate_colors(i: usize) -> Color {
-    if i % 2 == 0 {
+    if i.is_multiple_of(2) {
         NORMAL_ROW_BG
     } else {
         ALT_ROW_BG_COLOR

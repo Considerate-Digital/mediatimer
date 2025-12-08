@@ -7,9 +7,6 @@ use std::{
     fs,
     io::Write,
     io::Error as IoError,
-    path::{
-        PathBuf,
-    },
 };
 
 // accepts one arg: a full week schedule as TimingCollection vec<TimingsEntry>
@@ -18,9 +15,9 @@ pub fn export_schedule(timings: Vec<Weekday>) {
     // assembles schedule and writes it to file
    if let Some(dir) = home::home_dir() {
         // check if dir exists
-        let mut dir_path = PathBuf::from(dir);
+        let mut dir_path = dir;
         // check if the mediatimer directory exists in home
-        if dir_path.as_path().is_dir() == false {
+        if !dir_path.as_path().is_dir() {
             // create the mediatimer directory if it does not exist
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
                eprintln!("Directory could not be created: {}", er);
