@@ -150,8 +150,8 @@ impl FileSelectWidget {
         if let Some(height_info) = height_re.captures(&height_string) {
             if let height_collected = height_info[1].to_string() {
                 let height_int: u32 = height_collected.parse::<u32>().unwrap();
-                if height_int > 720 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 720p maximum.", height_int);
+                if height_int > 1080 {
+                    self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
                     self.error = true;
                     return false;
                 } else {
@@ -183,8 +183,8 @@ impl FileSelectWidget {
         if let Some(height_info) = height_re.captures(&height_string) {
             if let height_collected = height_info[1].to_string() {
                 let height_int: u32 = height_collected.parse::<u32>().unwrap();
-                if height_int > 1080 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 1080p maximum.", height_int);
+                if height_int > 1440 {
+                    self.error_message = format!("Video resolution is too high ({}). Export video as 1440p (QHD) maximum.", height_int);
                     self.error = true;
                     return false;
                 } else {
@@ -217,7 +217,7 @@ impl FileSelectWidget {
             let height_collected = height_info[1].to_string();
                 let height_int: u32 = height_collected.parse::<u32>().unwrap();
                 if height_int > 2160 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 4K maximum.", height_int);
+                    self.error_message = format!("Video resolution is too high ({}). Export video as 2160p (4K) maximum.", height_int);
                     self.error = true;
                     return false;
                 } else {
