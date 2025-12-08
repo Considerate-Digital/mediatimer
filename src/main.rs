@@ -47,9 +47,6 @@ use crate::landing::LandingWidget;
 mod loading;
 use crate::loading::LoadingWidget;
 
-mod reboot;
-use crate::reboot::RebootWidget;
-
 mod mount;
 
 mod styles;
@@ -106,17 +103,6 @@ pub enum Weekday {
 }
 
 impl Weekday {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Weekday::Monday(_) => "Monday",
-            Weekday::Tuesday(_) => "Tuesday",
-            Weekday::Wednesday(_) => "Wednesday",
-            Weekday::Thursday(_) => "Thursday",
-            Weekday::Friday(_) => "Friday",
-            Weekday::Saturday(_) => "Saturday",
-            Weekday::Sunday(_) => "Sunday"
-        }
-    }
     fn to_string(&self) -> String {
         match self {
             Weekday::Monday(_) => String::from("Monday"),
@@ -128,30 +114,6 @@ impl Weekday {
             Weekday::Sunday(_) => String::from("Sunday")
         }
     }
-
-    fn timings(&self) -> Schedule {
-        match self {
-            Weekday::Monday(schedule) => schedule.clone(),
-            Weekday::Tuesday(schedule) => schedule.clone(),
-            Weekday::Wednesday(schedule) => schedule.clone(),
-            Weekday::Thursday(schedule) => schedule.clone(),
-            Weekday::Friday(schedule) => schedule.clone(),
-            Weekday::Saturday(schedule) => schedule.clone(),
-            Weekday::Sunday(schedule) => schedule.clone()
-        }
-    }
-}
-
-fn default_timings() -> Timings {
-    vec![
-        Weekday::Monday(Vec::new()),
-        Weekday::Tuesday(Vec::new()),
-        Weekday::Wednesday(Vec::new()),
-        Weekday::Thursday(Vec::new()),
-        Weekday::Friday(Vec::new()),
-        Weekday::Saturday(Vec::new()),
-        Weekday::Sunday(Vec::new()),
-    ]
 }
 
 pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>> {
@@ -164,7 +126,6 @@ pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>
         let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
         // check the times split correctly
         let parsed_count = string_vec_test.len();  
-        let string_of_times = string_vec_test.iter().map(|s| s.to_string()).collect::<String>();
         let mut re_count = 0;
         for time in string_vec_test.iter() {
             if re.is_match(&time) == true {
@@ -346,7 +307,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
     
     if env_dir_path.exists() {
-        if let Err(e) = dotenvy::from_path_override(env_dir_path.as_path()) {
+        if let Err(_) = dotenvy::from_path_override(env_dir_path.as_path()) {
             eprintln!("Cannot find env vars at path: {}", env_dir_path.display());
         }
         // parse the environmental vars
@@ -389,8 +350,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         timings = vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday]; 
     }
-
-    let timings_clone = timings.clone();
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();

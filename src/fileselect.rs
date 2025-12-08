@@ -20,7 +20,6 @@ use std::{
     PathBuf,
     Path
     },
-    fs::File,
     process::Command
 };
 
@@ -215,7 +214,7 @@ impl FileSelectWidget {
         let height_string = String::from_utf8_lossy(&vid_height.stdout);
         let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
         if let Some(height_info) = height_re.captures(&height_string) {
-            if let height_collected = height_info[1].to_string() {
+            let height_collected = height_info[1].to_string();
                 let height_int: u32 = height_collected.parse::<u32>().unwrap();
                 if height_int > 2160 {
                     self.error_message = format!("Video resolution is too high ({}). Export video as 4K maximum.", height_int);
@@ -225,7 +224,6 @@ impl FileSelectWidget {
                     return true;
                 }
                 
-            }
         } else {
             self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
             self.error = true;
@@ -250,14 +248,14 @@ impl FileSelectWidget {
     fn render_error(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
         let popup_area: Rect = areas::popup_area(area);
-        let background = Paragraph::new(Line::raw(""))
+        let _background = Paragraph::new(Line::raw(""))
             .bg(NORMAL_ROW_BG)
             .block(
                 Block::new()
             )
             .render(area, buf);
 
-        let input = Paragraph::new(Line::raw(&self.error_message)) 
+        let _input = Paragraph::new(Line::raw(&self.error_message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -329,7 +327,7 @@ impl FileSelectWidget {
 
     fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
 
-        let mut text = Vec::with_capacity(10);
+        let text;
     
         if self.can_be_dir == true {
             text = vec![ 

@@ -1,23 +1,16 @@
-
-
 use crate::{
     Weekday,
     Schedule,
-    to_weekday
 
 };
 use std::{
-    env,
     fs,
-    io,
     io::Write,
     io::Error as IoError,
     path::{
         PathBuf,
     },
 };
-
-use crate::Timings;
 
 // accepts one arg: a full week schedule as TimingCollection vec<TimingsEntry>
 // result return type temporarily removed
@@ -37,7 +30,7 @@ pub fn export_schedule(timings: Vec<Weekday>) {
 
         dir_path.push("schedule.mt");
 
-        let mut file = fs::OpenOptions::new()
+        let file = fs::OpenOptions::new()
             .create(true)
             .truncate(true)
             .write(true)

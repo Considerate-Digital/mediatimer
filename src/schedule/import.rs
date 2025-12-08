@@ -1,17 +1,10 @@
-
-
 use crate::{
     Weekday,
-    Schedule,
     to_weekday
 
 };
 use std::{
     env,
-    fs,
-    io,
-    io::Write,
-    io::Error as IoError,
     path::{
         PathBuf,
     },
@@ -20,9 +13,8 @@ use std::{
 use crate::Timings;
 
 pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
-    let username = whoami::username();
     // set up the config vars
-    let mut timings: Timings = Vec::with_capacity(7);
+    let timings: Timings = Vec::with_capacity(7);
     let mut monday: Weekday = Weekday::Monday(Vec::with_capacity(2));
     let mut tuesday: Weekday = Weekday::Tuesday(Vec::with_capacity(2));
     let mut wednesday: Weekday = Weekday::Wednesday(Vec::with_capacity(2));
@@ -32,7 +24,7 @@ pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
     let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
     
     if schedule_path.exists() {
-        if let Err(e) = dotenvy::from_path_override(schedule_path.as_path()) {
+        if let Err(_) = dotenvy::from_path_override(schedule_path.as_path()) {
             eprintln!("Cannot find env vars at path: {}", schedule_path.display());
         }
         // parse the environmental vars

@@ -19,12 +19,7 @@ use std::error::Error;
 use crate::styles::{
     ITEM_HEADER_STYLE,
     NORMAL_ROW_BG,
-    ALT_ROW_BG_COLOR,
     TEXT_FG_COLOR,
-};
-
-use crate::areas::{
-    popup_area
 };
 
 

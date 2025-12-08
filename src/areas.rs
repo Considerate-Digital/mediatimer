@@ -1,7 +1,5 @@
 use ratatui::{
     layout::{
-        Constraint,
-        Layout,
         Rect
     }
 };

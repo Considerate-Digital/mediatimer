@@ -1,4 +1,3 @@
-use derive_setters::Setters;
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
@@ -7,7 +6,7 @@ use ratatui::{
         Color, Stylize, Style, Modifier
     },
     symbols,
-    text::{Line, Text},
+    text::{Line},
     widgets::{
         Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph, Clear,
         StatefulWidget, Widget, Wrap,
@@ -15,23 +14,12 @@ use ratatui::{
     DefaultTerminal,
 };
 
-use ratatui::{
-    prelude::CrosstermBackend,
-};
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
-};
-
 use std::{
     path::{
         PathBuf,
         Path
     },
-    fmt,
     error::Error,
-    process
 };
 use crate::Timings;
 use crate::Weekday as CommonWeekday;
@@ -73,17 +61,6 @@ pub enum Weekday {
 }
 
 impl Weekday {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Weekday::Monday(_) => "Monday",
-            Weekday::Tuesday(_) => "Tuesday",
-            Weekday::Wednesday(_) => "Wednesday",
-            Weekday::Thursday(_) => "Thursday",
-            Weekday::Friday(_) => "Friday",
-            Weekday::Saturday(_) => "Saturday",
-            Weekday::Sunday(_) => "Sunday"
-        }
-    }
     fn to_string(&self) -> String {
         match self {
             Weekday::Monday(_) => String::from("Monday"),
@@ -240,18 +217,6 @@ enum TimingOp {
 }
 
 impl TimingOp {
-    fn as_str(&self) -> &'static str {
-        match self {
-            TimingOp::Add => "Add",
-            TimingOp::Del => "Delete",
-            TimingOp::Edit => "Edit",
-            TimingOp::Duplicate => "Copy",
-            TimingOp::Import => "Import",
-            TimingOp::Export => "Export",
-            TimingOp::Exit => "Exit"
-
-        }
-    }
     fn as_vec_of_str(&self) -> Vec<TimingOpItem> {
         vec![
             TimingOpItem::from("Add"), 
@@ -509,7 +474,6 @@ pub struct TimingsWidget {
 }
 impl Default for TimingsWidget {
     fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
         Self {
             message_text: String::new(),
             file_explorer: FileExplorer::new().unwrap(),
@@ -530,13 +494,13 @@ impl Default for TimingsWidget {
             exit_list: ExitList::default(),
             error_type: ErrorType::Format,
             list_element_entries: TimingsList::from_iter([
-                (Weekday::Monday(TimingCollection::default()), info_text),
-                (Weekday::Tuesday(TimingCollection::default()), info_text),
-                (Weekday::Wednesday(TimingCollection::default()), info_text),
-                (Weekday::Thursday(TimingCollection::default()), info_text),
-                (Weekday::Friday(TimingCollection::default()), info_text),
-                (Weekday::Saturday(TimingCollection::default()), info_text),
-                (Weekday::Sunday(TimingCollection::default()), info_text),
+                (Weekday::Monday(TimingCollection::default())),
+                (Weekday::Tuesday(TimingCollection::default())),
+                (Weekday::Wednesday(TimingCollection::default())),
+                (Weekday::Thursday(TimingCollection::default())),
+                (Weekday::Friday(TimingCollection::default())),
+                (Weekday::Saturday(TimingCollection::default())),
+                (Weekday::Sunday(TimingCollection::default())),
             ]),
             schedule: Vec::with_capacity(7)
         }
@@ -557,11 +521,11 @@ impl Default for TimingsList {
     }
 }
 
-impl FromIterator<(Weekday, &'static str)> for TimingsList {
-    fn from_iter<I: IntoIterator<Item = (Weekday, &'static str)>>(iter: I) -> Self {
+impl FromIterator<Weekday> for TimingsList {
+    fn from_iter<I: IntoIterator<Item = Weekday>>(iter: I) -> Self {
         let list = iter
             .into_iter()
-            .map(|(list_element, info)| TimingsEntry::new(list_element, info))
+            .map(|list_element| TimingsEntry::new(list_element))
             .collect();
         let mut state = ListState::default();
         state.select_first();
@@ -573,7 +537,6 @@ impl FromIterator<(Weekday, &'static str)> for TimingsList {
 pub struct TimingsEntry {
     list_element: String,
     timings: TimingCollection,
-    info: String,
 }
 
 impl From<&TimingsEntry> for ListItem<'_> {
@@ -584,17 +547,15 @@ impl From<&TimingsEntry> for ListItem<'_> {
 }
 
 impl TimingsEntry {
-    fn new(weekday: Weekday, info: &str) -> Self {
+    fn new(weekday: Weekday) -> Self {
         Self {
             list_element: weekday.to_string(),
             timings: weekday.timings(),
-            info: info.to_string()
         }
     }
 }
 
 fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
-    let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow to retreat through the menus. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
 
     let days_with_timings_collection: Vec<_> = c_timings.iter()
         .map(|ct| common_to_local_weekday(ct.clone()))
@@ -609,20 +570,20 @@ fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
         let mut t_list = TimingsList::default();
         for day in c_timings.iter() {
             let day = common_to_local_weekday(day.clone());
-            let t_entry = TimingsEntry::new(day, info_text);
+            let t_entry = TimingsEntry::new(day);
             t_list.list.push(t_entry); 
         }
         t_list
 
     } else {
         TimingsList::from_iter([
-            (Weekday::Monday(TimingCollection::default()), info_text),
-            (Weekday::Tuesday(TimingCollection::default()), info_text),
-            (Weekday::Wednesday(TimingCollection::default()), info_text),
-            (Weekday::Thursday(TimingCollection::default()), info_text),
-            (Weekday::Friday(TimingCollection::default()), info_text),
-            (Weekday::Saturday(TimingCollection::default()), info_text),
-            (Weekday::Sunday(TimingCollection::default()), info_text),
+            (Weekday::Monday(TimingCollection::default())),
+            (Weekday::Tuesday(TimingCollection::default())),
+            (Weekday::Wednesday(TimingCollection::default())),
+            (Weekday::Thursday(TimingCollection::default())),
+            (Weekday::Friday(TimingCollection::default())),
+            (Weekday::Saturday(TimingCollection::default())),
+            (Weekday::Sunday(TimingCollection::default())),
         ])
     }
 }
@@ -656,7 +617,7 @@ impl TimingsWidget {
             schedule: Vec::with_capacity(7)
         }
     }
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
 
         self.setup_file_explorer();
         self.style_file_explorer();
@@ -679,7 +640,7 @@ impl TimingsWidget {
             let event = event::read()?;
                 match self.current_screen {
                     CurrentScreen::Import => {
-                        self.file_explorer.handle(&event);
+                        let _ = self.file_explorer.handle(&event);
                     },
                     _ => {}
                 }
@@ -1071,7 +1032,6 @@ impl TimingsWidget {
                     _ => self.reverse_state()
                 }
             },
-
             CurrentScreen::Export => self.reverse_state(),
             CurrentScreen::Import => {
                 let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
@@ -1080,7 +1040,7 @@ impl TimingsWidget {
                 match key.code {
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
                     KeyCode::Enter if is_dir == false || (is_dir == false && dir_is_dead_end == true) => {
-                        let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
+                        let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         let schedule = import::import_schedule(self.selected_file.clone());
                         self.list_element_entries = parse_common_timings(schedule);
@@ -1091,7 +1051,6 @@ impl TimingsWidget {
                 }
 
             },
-            CurrentScreen::Message => self.reverse_state(),
             CurrentScreen::Exit => {
                 match key.code {
                     KeyCode::Char('m') => self.current_screen = CurrentScreen::TimingOptions,
@@ -1268,7 +1227,7 @@ impl TimingsWidget {
     }
 
     fn duplicate_schedule_to_weekdays(&mut self) {
-        let mut current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
+        let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
         for (i, entry) in self.list_element_entries.list.iter_mut().enumerate() {
             if i < 5 {
                 entry.timings = current_weekday_schedule.clone();
@@ -1278,7 +1237,7 @@ impl TimingsWidget {
 
     fn duplicate_schedule_to_all_days(&mut self) {
          let current_weekday_schedule = self.list_element_entries.list[self.weekday_selected].timings.clone();
-        for (i, entry) in self.list_element_entries.list.iter_mut().enumerate() {
+        for (_, entry) in self.list_element_entries.list.iter_mut().enumerate() {
             entry.timings = current_weekday_schedule.clone();
         }
     }
@@ -1328,10 +1287,6 @@ impl TimingsWidget {
 
     fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
         new_cursor_pos.clamp(0, self.input.chars().count())
-    }
-
-    fn reset_cursor(&mut self) {
-        self.character_index = 0;
     }
 
     // rendering logic
@@ -1422,7 +1377,7 @@ impl TimingsWidget {
             // we have to diferentiate this "render" from the render fn on self
             StatefulWidget::render(list, area, buf, &mut self.list_element_entries.list[self.weekday_selected].timings.state);
         } else {
-            let input = Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
+            let _input = Paragraph::new(Line::raw("No schedule set, press Enter to add a new one."))
                .style(SELECTED_STYLE)
                .bg(NORMAL_ROW_BG)
                .fg(TEXT_FG_COLOR)
@@ -1470,7 +1425,7 @@ impl TimingsWidget {
 
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
-       let input = Paragraph::new(self.input.as_str()) 
+       let _input = Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -1484,7 +1439,7 @@ impl TimingsWidget {
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let input = Paragraph::new(self.input.as_str()) 
+        let _input = Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -1592,9 +1547,7 @@ impl TimingsWidget {
     }
     fn render_file_explorer_selected_item(&self, area: Rect, buf: &mut Buffer) {
 
-        let mut text = Vec::with_capacity(10);
-    
-            text = vec![ 
+        let text = vec![ 
                 Line::from("Select a file using our file explorer or press 'm' to open the menu."),
                 Line::from("Use the arrow keys ⇅ to find the file you want to use."),
                 Line::from("Press ENTER to select the file."),
@@ -1635,30 +1588,14 @@ impl TimingsWidget {
     }
 
 
-    fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
-        // set the current input as the entry selected.
-
-        let username = whoami::username();
-        let message = format!("Schedule has been imported");
-
-        let input = Paragraph::new(Line::raw(message)) 
-           .fg(TEXT_FG_COLOR)
-           .bg(NORMAL_ROW_BG)
-           .wrap(Wrap {trim:false})
-           .block(
-               Block::bordered()
-               .style(ITEM_HEADER_STYLE)
-               .title(Line::raw("IMPORT").centered())
-           )
-           .render(area, buf);
-    }
+    
     fn render_export(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
         let username = whoami::username();
         let message = format!("Schedule has been exported to /home/{}/schedule.mt", username);
 
-        let input = Paragraph::new(Line::raw(message)) 
+        let _input = Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -1673,7 +1610,7 @@ impl TimingsWidget {
     fn render_message(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let input = Paragraph::new(Line::raw(&self.message_text)) 
+        let _input = Paragraph::new(Line::raw(&self.message_text)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -1692,7 +1629,7 @@ impl TimingsWidget {
             ErrorType::Clash => "Clash Error! Please check that the timing does not clash with another existing timing."
         };
 
-        let input = Paragraph::new(Line::raw(message)) 
+        let _input = Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})

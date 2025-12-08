@@ -16,13 +16,11 @@ use ratatui::{
 use ratatui::prelude::*;
 use std::error::Error;
 use std::{
-    process,
     process::{
         Command
     },
     thread,
     sync::{
-        Mutex,
         Arc,
         atomic::{
             AtomicBool,
@@ -36,35 +34,23 @@ use crate::styles::{
     ITEM_HEADER_STYLE,
     NORMAL_ROW_BG,
     TEXT_FG_COLOR,
-    ALT_ROW_BG_COLOR,
 };
-
-use crate::areas::{
-    popup_area
-};
-
 
 pub struct LoadingWidget {
-    command: String,
-    child_threads: Arc<Mutex<Vec<process::Child>>>,
     should_exit: Arc<AtomicBool>,
 }
 
 impl Default for LoadingWidget {
     fn default() -> Self {
         Self {
-            command: String::from(""),
-            child_threads: Arc::new(Mutex::new(Vec::new())),
             should_exit: Arc::new(AtomicBool::new(false))
         }
     }
 }
 
 impl LoadingWidget {
-    pub fn new(mut self, command: String) -> Self {
+    pub fn new(self) -> Self {
         Self {
-            command,
-            child_threads: Arc::new(Mutex::new(Vec::new())),
             should_exit: Arc::new(AtomicBool::new(false))
         }
     }
@@ -160,17 +146,13 @@ impl LoadingWidget {
 impl Widget for &mut LoadingWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
 
-        let [header_area, main_area, footer_area] = Layout::vertical([
+        let [header_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
             Constraint::Length(1),
         ])
         .areas(area);
 
-        let [center_area] = Layout::vertical([
-            Constraint::Fill(1)
-        ])
-        .areas(main_area);
         LoadingWidget::render_header(header_area, buf);
         LoadingWidget::render_footer(footer_area, buf);
         LoadingWidget::render_text(area, buf);

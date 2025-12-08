@@ -1,13 +1,12 @@
-use derive_setters::Setters;
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{self, Event, KeyCode, KeyModifiers, KeyEvent, KeyEventKind},
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Layout, Rect, Position},
     style::{
         Color, Stylize, Style, Modifier
     },
     symbols,
-    text::{Line, Text},
+    text::{Line},
     widgets::{
         Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph, Clear,
         StatefulWidget, Widget, Wrap,
@@ -15,26 +14,17 @@ use ratatui::{
     DefaultTerminal,
 };
 
-use ratatui::{
-    prelude::CrosstermBackend,
-};
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
-};
-
 use std::{
     path::{
         PathBuf,
         Path
     },
-    fmt,
     error::Error,
-    process,
-    io::{Read, BufRead, BufReader},
+    io::{BufRead, BufReader},
     fs
 };
+
+/*
 use wl_clipboard_rs::{
     paste::{
         get_contents,
@@ -44,9 +34,10 @@ use wl_clipboard_rs::{
         Seat
     }
 };
+*/
+
 use crate::areas;
 use regex::Regex;
-use strum::Display;
 
 use crate::styles::{
     ITEM_HEADER_STYLE,
@@ -74,24 +65,6 @@ enum CurrentScreen {
     Exit
 }
 
-#[derive(Debug, Clone)]
-struct Url {
-    url: String
-}
-
-impl Url {
-    fn default() -> Url {
-        Url {
-            url: String::from("https://adaptables.parts")
-        }
-    }
-    fn new(new_url: &str) -> Url {
-        Url {
-            url: String::from(new_url)
-        }
-    }
-}
-
 #[derive(Clone)]
 enum Menu {
     Add,
@@ -100,14 +73,6 @@ enum Menu {
 }
 
 impl Menu {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Menu::Add => "Add",
-            Menu::Import => "Import",
-            Menu::Exit => "Exit"
-
-        }
-    }
     fn as_vec_of_str(&self) -> Vec<MenuItem> {
         vec![
             MenuItem::from("Add"), 
@@ -186,8 +151,7 @@ impl From<&ExitItem> for ListItem<'_> {
 }
 
 enum ErrorType {
-    Format,
-    Unknown
+    Format
 }
 
 
@@ -212,7 +176,6 @@ pub struct WebWidget {
 impl Default for WebWidget {
     // Only used for tests
     fn default() -> Self {
-        let info_text = "Enter the start and end timings for this day. Use ENTER or the right keyboard arrow → to advance through the menu. Add, edit or delete schedule timings. Use ESC or the left keyboard arrow ← to retreat through the menus and exit. Schedule timings must use the 24 hour clock and must follow the format 00:00:00-00:00:00";
         Self {
             message_text: String::new(),
             file_explorer: FileExplorer::new().unwrap(),
@@ -251,7 +214,7 @@ impl WebWidget {
             error_type: ErrorType::Format,
         }
     }
-    pub fn run (mut self, mut terminal: &mut DefaultTerminal) -> Result<String, Box< dyn Error>> {
+    pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<String, Box< dyn Error>> {
 
         self.setup_file_explorer();
         self.style_file_explorer();
@@ -274,7 +237,7 @@ impl WebWidget {
             let event = event::read()?;
                 match self.current_screen {
                     CurrentScreen::Import => {
-                        self.file_explorer.handle(&event);
+                        let _ = self.file_explorer.handle(&event);
                     },
                     _ => {}
                 }
@@ -438,7 +401,6 @@ impl WebWidget {
                     _ => self.reverse_state()
                 }
             },
-
             CurrentScreen::Import => {
                 let dirs_in_current = self.file_explorer.files().into_iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
                 let dir_is_dead_end = dirs_in_current.len() < 2; 
@@ -446,7 +408,7 @@ impl WebWidget {
                 match key.code {
                     KeyCode::Char('h') | KeyCode::Left | KeyCode::Backspace | KeyCode::Esc => self.reverse_state(),
                     KeyCode::Enter if is_dir == false || (is_dir == false && dir_is_dead_end == true) => {
-                        let mut current_path_buf = self.file_explorer.current().path().to_path_buf();
+                        let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         // TODO read file here
                         let file = fs::File::open(&self.selected_file).expect("Failed to open URL file");
@@ -473,7 +435,6 @@ impl WebWidget {
                 }
 
             },
-            CurrentScreen::Message => self.reverse_state(),
             CurrentScreen::Exit => {
                 match key.code {
                     KeyCode::Char('m') => self.current_screen = CurrentScreen::Menu,
@@ -599,10 +560,6 @@ impl WebWidget {
         new_cursor_pos.clamp(0, self.input.chars().count())
     }
 
-    fn reset_cursor(&mut self) {
-        self.character_index = 0;
-    }
-
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Media Timer Setup")
@@ -712,7 +669,7 @@ impl WebWidget {
 
     }
     fn render_add(&self, area: Rect, buf: &mut Buffer) {
-       let input = Paragraph::new(self.input.as_str()) 
+       let _input = Paragraph::new(self.input.as_str()) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .block(
@@ -727,10 +684,7 @@ impl WebWidget {
         self.file_explorer.widget().render(area, buf);
     }
     fn render_file_explorer_selected_item(&self, area: Rect, buf: &mut Buffer) {
-
-        let mut text = Vec::with_capacity(10);
-    
-            text = vec![ 
+            let text = vec![ 
                 Line::from("Select a text file containing a URL using our file explorer."),
                 Line::from("Use the arrow keys ⇅ to find the file you want to use."),
                 Line::from("Press ENTER to select the file."),
@@ -770,28 +724,10 @@ impl WebWidget {
     }
 
 
-    fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
-        // set the current input as the entry selected.
-
-        let username = whoami::username();
-        let message = format!("Url {} has been imported", &self.url);
-
-        let input = Paragraph::new(Line::raw(message)) 
-           .fg(TEXT_FG_COLOR)
-           .bg(NORMAL_ROW_BG)
-           .wrap(Wrap {trim:false})
-           .block(
-               Block::bordered()
-               .style(ITEM_HEADER_STYLE)
-               .title(Line::raw("IMPORT").centered())
-           )
-           .render(area, buf);
-    }
-    
     fn render_message(&mut self, area: Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
 
-        let input = Paragraph::new(Line::raw(&self.message_text)) 
+        let _input = Paragraph::new(Line::raw(&self.message_text)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -807,10 +743,9 @@ impl WebWidget {
         // set the current input as the entry selected.
         let message = match self.error_type {
             ErrorType::Format => "Formating Error! Please check the URL format. Note that URLs must start with \"https://\".",
-            ErrorType::Unknown => "Unknown Error! Please check that the timing does not clash with another existing timing."
         };
 
-        let input = Paragraph::new(Line::raw(message)) 
+        let _input = Paragraph::new(Line::raw(message)) 
            .fg(TEXT_FG_COLOR)
            .bg(NORMAL_ROW_BG)
            .wrap(Wrap {trim:false})
@@ -856,7 +791,7 @@ impl WebWidget {
 
     fn render_background(&self, area:Rect, buf: &mut Buffer) {
         // set the current input as the entry selected.
-        let block = Block::new()
+        let _block = Block::new()
             .title(Line::raw("URL setup").centered())
             .borders(Borders::TOP)
             .border_set(symbols::border::EMPTY)
@@ -992,12 +927,6 @@ impl Widget for &mut WebWidget {
                     Constraint::Length(1),
                 ])
                 .areas(area);
-
-                let [list_area, item_area] = Layout::vertical([
-                    Constraint::Fill(3),
-                    Constraint::Fill(1)
-                ])
-                .areas(main_area);
 
                 WebWidget::render_background(&self, main_area, buf);
                 WebWidget::render_header(header_area, buf);
