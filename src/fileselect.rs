@@ -145,17 +145,16 @@ impl FileSelectWidget {
         let height_string = String::from_utf8_lossy(&vid_height.stdout);
         let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
         if let Some(height_info) = height_re.captures(&height_string) {
-            if let height_collected = height_info[1].to_string() {
-                let height_int: u32 = height_collected.parse::<u32>().unwrap();
-                if height_int > 1080 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
-                    self.error = true;
-                    return false;
-                } else {
-                    return true;
-                }
-                
+            let height_collected = height_info[1].to_string();
+            let height_int: u32 = height_collected.parse::<u32>().unwrap();
+            if height_int > 1080 {
+                self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
+                self.error = true;
+                return false;
+            } else {
+                return true;
             }
+                
         } else {
             self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
             self.error = true;
