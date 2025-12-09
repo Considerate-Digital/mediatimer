@@ -239,6 +239,9 @@ fn write_task(task: Task) -> Result<(), IoError> {
        // write file
        writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
 
+       // write uuid
+       writeln!(file, "MT_UUID=\"{}\"", task.uuid.display())?;
+
        // write slide delay
 
        writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
@@ -266,17 +269,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("stop")
         .arg("mediatimer_init.service")
         .output()
-        .expect("Media Timer not restarted");
+        .expect("Media Timer not stopped");
 
 
     // Find and load any existing config for the user
-    // This is hard coded, as the user will always be named "fun"
     let username = whoami::username();
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
 
 
+    let [mounted_drive, uuid] = identify_mounted_drives();
+
     // set up the config vars
     let mut file = PathBuf::new();
+    let mut uuid = String::new();
     let mut web_url = String::new();
     let mut slide_delay: u32 = 5;
     let mut proc_type = ProcType::Video;
@@ -315,6 +320,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &_ => Autoloop::No
                 },
                 "MT_FILE" => file.push(value.as_str()),
+                "MT_UUID" => uuid.push_str(value.as_str()),
                 "MT_URL" => web_url.push_str(value.as_str()),
                 "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>().unwrap(),
                 "MT_SCHEDULE" => schedule = match value.as_str() {
@@ -355,7 +361,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         // return Ok(PathBuf)
         let proctype_clone = proctype.clone();
         file = FileSelectWidget::new(file, can_be_dir, proctype_clone).run(&mut terminal)?;
+        // check uuid against file path
+        // TODO error checking
+        // This passes only the device label in /media/{username}/{label} as this device has 
+        // recently been mounted
+        let used_device_label = file.components().nth(2).unwrap().to_os_str().to_str().unwrap();
+        if let Ok(new_uuid) = match_mountpoint(used_device_label) {
 
+        }
     }
     
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
@@ -371,7 +384,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if is_media_type && advanced_schedule == AdvancedSchedule::Yes {
         auto_loop = AutoloopWidget::new(auto_loop).run(&mut terminal)?;
     }
-    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file, slide_delay, web_url);
+    let task = Task::new(proctype, auto_loop, advanced_schedule, timings, file, slide_delay, web_url, uuid);
 
     // write_task 
     if let Err(e) = write_task(task) {

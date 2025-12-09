@@ -61,6 +61,7 @@ impl Default for FileSelectWidget {
             selected_file: Path::new("./").to_path_buf(),
             can_be_dir: false,
             proc_type: ProcType::Video,
+            mounted_drives: Vec<PathBuf>,
             error: false,
             error_message: String::from("")
         }
@@ -68,20 +69,21 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType) -> Self {
+    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<PathBuf>) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
             can_be_dir,
             proc_type,
+            mounted_drives,
             error: false,
             error_message: String::from("")
         }
     }
 
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
-        self.setup_file_explorer();
+        self.setup_file_explorer(self.mounted_drives);
         self.style_file_explorer();
 
         while !self.should_exit {
@@ -286,8 +288,7 @@ impl FileSelectWidget {
         self.file_explorer.set_theme(theme)
     }
 
-    fn setup_file_explorer(&mut self) {
-        let mounted_drives = identify_mounted_drives();
+    fn setup_file_explorer(&mut self, mounted_drives) {
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {

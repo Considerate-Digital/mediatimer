@@ -42,13 +42,13 @@ impl Usb {
 
     }
 }
-pub fn identify_mounted_drives() -> Vec<String> {
+pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
     let mut mounts = Vec::with_capacity(2);
     // find out if any drives mounted, otherwise default to /home/username
     let all_drives = Command::new("lsblk")
         .arg("-l")
         .arg("-o")
-        .arg("NAME,HOTPLUG")
+        .arg("NAME,HOTPLUG,UUID")
         .output()
         .expect("some drives");
 
@@ -132,17 +132,46 @@ pub fn identify_mounted_drives() -> Vec<String> {
                     // this will be a vector with four parts
 
                     if mounted_drive_info.len() == 4 && !mounted_drive_info[3].is_empty() {
-                        mounts.push(String::from(mounted_drive_info[3]));
+                        mounts.push((
+                                PathBuf::from(mounted_drive_info[3]),
+                                String::from(drive_info[2])
+                        ));
                     }
 
                 } else if mount_info.len() == 2 {
-                    mounts.push(String::from(mount_info[1]));
+                    mounts.push((
+                        PathBuf::from(mount_info[1]),
+                        String::from(drive_info[2])
+                    ));
                 }
             }
-
         }
     }
     mounts
 }
 
+// returns uuid string
+pub fn match_mountpoint(device_label: &str) -> Result<String, Error> {
+    let mounts = identify_mounted_drives();
 
+    let all_drives = Command::new("lsblk")
+        .arg("-l")
+        .arg("-o")
+        .arg("NAME,HOTPLUG,UUID,MOUNTPOINT")
+        .output()
+        .expect("some drives");
+
+    let all_drives_string = String::from_utf8_lossy(&all_drives.stdout);
+    
+    for line in all_drives_string.lines() {
+        if line.contains(mount_point) {
+            // the device label matches so return the UUID
+            let drive_info = line.split(' ')
+                .filter(|d| !d.is_empty() )
+                .collect::<Vec<_>>();
+            // returns the UUID
+            return Ok(String::from(drive_info[2]));
+        }
+    }
+    Err(Error::new(ErrorKind::Other, "Could not match UUID"))
+}
