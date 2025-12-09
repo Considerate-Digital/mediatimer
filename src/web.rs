@@ -49,7 +49,6 @@ use crate::styles::{
     FOOTER_STYLE
 };
 
-use crate::mount::identify_mounted_drives;
 type FileSelect = PathBuf;
 use ratatui_explorer::{FileExplorer, Theme};
 // This is declared twice due to the TUI list structure requirements and must be converted 
@@ -110,8 +109,6 @@ impl MenuItem {
     }
 }
 
-
-
 impl From<&MenuItem> for ListItem<'_> {
     fn from(value: &MenuItem) -> Self {
         let line = Line::styled(value.op_item.clone(), TEXT_FG_COLOR);
@@ -154,7 +151,6 @@ enum ErrorType {
     Format
 }
 
-
 pub struct WebWidget {
     message_text: String,
     file_explorer: FileExplorer,
@@ -171,6 +167,7 @@ pub struct WebWidget {
     input_area: Rect,
     exit_list: ExitList,
     error_type: ErrorType,
+    mounted_drives: Vec<(PathBuf, String)>
 }
 
 impl Default for WebWidget {
@@ -191,11 +188,12 @@ impl Default for WebWidget {
             input_area: Rect::new(0,0,0,0),
             exit_list: ExitList::default(),
             error_type: ErrorType::Format,
+            mounted_drives: Vec::new()
         }
     }
 }
 impl WebWidget {
-    pub fn new (new_url: String) -> Self {
+    pub fn new (new_url: String, mounted_drives: Vec<(PathBuf, String)>) -> Self {
 
         Self {
             message_text: String::new(),
@@ -212,6 +210,7 @@ impl WebWidget {
             input_area: Rect::new(0,0,0,0),
             exit_list: ExitList::default(),
             error_type: ErrorType::Format,
+            mounted_drives
         }
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<String, Box< dyn Error>> {
@@ -263,7 +262,6 @@ impl WebWidget {
         self.file_explorer.set_theme(theme)
     }
     fn setup_file_explorer(&mut self) {
-        let mounted_drives = identify_mounted_drives();
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
@@ -279,11 +277,11 @@ impl WebWidget {
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
             }
-        } else if mounted_drives.len() > 1 && !username.is_empty() {
+        } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
-        } else if mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(&mounted_drives[0]).unwrap();
+        } else if self.mounted_drives.len() == 1 {
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();

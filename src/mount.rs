@@ -3,6 +3,11 @@ use std:: {
         Command,
         Stdio
     },
+    io::{
+        Error,
+        ErrorKind
+    },
+    path::PathBuf
 };
 use regex::Regex;
 
@@ -152,7 +157,6 @@ pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
 
 // returns uuid string
 pub fn match_mountpoint(device_label: &str) -> Result<String, Error> {
-    let mounts = identify_mounted_drives();
 
     let all_drives = Command::new("lsblk")
         .arg("-l")
@@ -164,7 +168,7 @@ pub fn match_mountpoint(device_label: &str) -> Result<String, Error> {
     let all_drives_string = String::from_utf8_lossy(&all_drives.stdout);
     
     for line in all_drives_string.lines() {
-        if line.contains(mount_point) {
+        if line.contains(device_label) {
             // the device label matches so return the UUID
             let drive_info = line.split(' ')
                 .filter(|d| !d.is_empty() )

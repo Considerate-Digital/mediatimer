@@ -34,8 +34,6 @@ use crate::styles::{
     FOOTER_STYLE
 };
 
-use crate::mount::identify_mounted_drives;
-
 use crate::ProcType;
 use crate::areas;
 
@@ -62,7 +60,7 @@ impl Default for FileSelectWidget {
             selected_file: Path::new("./").to_path_buf(),
             can_be_dir: false,
             proc_type: ProcType::Video,
-            mounted_drives: Vec::from((PathBuf::new("./"), String::new())),
+            mounted_drives: Vec::new(),
             error: false,
             error_message: String::from("")
         }
@@ -70,7 +68,7 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<PathBuf>) -> Self {
+    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<(PathBuf, String)>) -> Self {
         Self {
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
@@ -305,11 +303,11 @@ impl FileSelectWidget {
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
             }
-        } else if mounted_drives.len() > 1 && !username.is_empty() {
+        } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
-        } else if mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(self.mounted_drives[0].0).unwrap();
+        } else if self.mounted_drives.len() == 1 {
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();

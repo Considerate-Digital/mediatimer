@@ -44,7 +44,6 @@ use crate::schedule::{
     import,
 };
 
-use crate::mount::identify_mounted_drives;
 type FileSelect = PathBuf;
 use ratatui_explorer::{FileExplorer, Theme};
 // This is declared twice due to the TUI list structure requirements and must be converted 
@@ -491,8 +490,8 @@ impl Default for TimingsWidget {
                 (Weekday::Saturday(TimingCollection::default())),
                 (Weekday::Sunday(TimingCollection::default())),
             ]),
-            schedule: Vec::with_capacity(7)
-            mounted_drives: Vec::new();
+            schedule: Vec::with_capacity(7),
+            mounted_drives: Vec::new()
         }
     }
 }
@@ -579,7 +578,7 @@ fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
 }
 
 impl TimingsWidget {
-    pub fn new (preset_timings: CommonTimings, mounted_drives) -> Self {
+    pub fn new (preset_timings: CommonTimings, mounted_drives: Vec<(PathBuf, String)>) -> Self {
 
         // convert the common-timings to timings
         let parsed_timings: TimingsList = parse_common_timings(preset_timings);
@@ -676,11 +675,11 @@ impl TimingsWidget {
             } else {
                 self.file_explorer.set_cwd("/home/").unwrap();
             }
-        } else if mounted_drives.len() > 1 && !username.is_empty() {
+        } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
-        } else if mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(self.mounted_drives[0].0).unwrap();
+        } else if self.mounted_drives.len() == 1 {
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();

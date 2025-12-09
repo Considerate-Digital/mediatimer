@@ -48,6 +48,10 @@ mod loading;
 use crate::loading::LoadingWidget;
 
 mod mount;
+use crate::mount::{
+    match_mountpoint,
+    identify_mounted_drives
+};
 
 mod styles;
 mod areas;
@@ -161,10 +165,11 @@ struct Task {
     file: PathBuf,
     slide_delay: u32,
     url: String,
+    uuid: String,
 }
 
 impl Task {
-    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32, url: String) -> Self {
+    fn new(proc_type: ProcType, auto_loop: Autoloop, advanced_schedule: AdvancedSchedule, timings: Timings, file: PathBuf, slide_delay: u32, url: String, uuid: String) -> Self {
         Task {
             proc_type,
             auto_loop,
@@ -172,7 +177,8 @@ impl Task {
             timings,
             file,
             slide_delay,
-            url
+            url,
+            uuid
         }
     }
 }
@@ -240,7 +246,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
        writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
 
        // write uuid
-       writeln!(file, "MT_UUID=\"{}\"", task.uuid.display())?;
+       writeln!(file, "MT_UUID=\"{}\"", task.uuid)?;
 
        // write slide delay
 
@@ -356,21 +362,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     if proctype == ProcType::Web {
         //returns Ok(String);
-        web_url = WebWidget::new(web_url).run(&mut terminal)?;
+        web_url = WebWidget::new(web_url, mounted_drives.clone()).run(&mut terminal)?;
     } else {
         // return Ok(PathBuf)
         let proctype_clone = proctype.clone();
-        file = FileSelectWidget::new(file, can_be_dir, proctype_clone, mounted_drives).run(&mut terminal)?;
-        // check uuid against file path
-        // TODO error checking
-        // This passes only the device label in /media/{username}/{label} as this device has 
-        // recently been mounted
-        let used_device_label = file.components().nth(2).unwrap().to_os_str().to_str().unwrap();
-        if let Ok(new_uuid) = match_mountpoint(used_device_label) {
-            uuid = new_uuid;
-        } else {
-            eprintln!("UUID could not be matched: {}", uuid);
-            IoError::other("UUID could not be matched.");
+        file = FileSelectWidget::new(file, can_be_dir, proctype_clone, mounted_drives.clone()).run(&mut terminal)?;
+
+        // if file contains /media/{username}
+        let media_point = format!("/media/{}", username); 
+        if file.as_os_str().to_str().unwrap().contains(&media_point) {
+            // check uuid against file path
+            // TODO error checking
+            // This passes only the device label in /media/{username}/{label} as this device has 
+            // recently been mounted
+            let used_device_label = file.components().nth(2).unwrap().as_os_str().to_str().unwrap();
+            if let Ok(new_uuid) = match_mountpoint(used_device_label) {
+                uuid = new_uuid;
+            } else {
+                eprintln!("UUID could not be matched: {}", uuid);
+                IoError::other("UUID could not be matched.");
+            }
         }
     }
     
