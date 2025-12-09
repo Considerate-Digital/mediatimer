@@ -104,13 +104,11 @@ impl FileSelectWidget {
             return;
         }
         let is_dir = self.file_explorer.current().is_dir();
-        let dirs_in_current = self.file_explorer.files().iter().filter(|f| f.is_dir()).collect::<Vec<_>>();
-        let dir_is_dead_end = dirs_in_current.len() < 2; 
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_exit = true;
             }
-            KeyCode::Enter if !is_dir && dir_is_dead_end => {
+            KeyCode::Enter if !is_dir => {
                 if self.error {
                     self.error = false;
                 } else if self.can_be_dir {
