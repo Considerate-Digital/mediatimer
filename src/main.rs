@@ -277,7 +277,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
 
 
-    let [mounted_drive, uuid] = identify_mounted_drives();
+    let mounted_drives = identify_mounted_drives();
 
     // set up the config vars
     let mut file = PathBuf::new();
@@ -360,14 +360,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         // return Ok(PathBuf)
         let proctype_clone = proctype.clone();
-        file = FileSelectWidget::new(file, can_be_dir, proctype_clone).run(&mut terminal)?;
+        file = FileSelectWidget::new(file, can_be_dir, proctype_clone, mounted_drives).run(&mut terminal)?;
         // check uuid against file path
         // TODO error checking
         // This passes only the device label in /media/{username}/{label} as this device has 
         // recently been mounted
         let used_device_label = file.components().nth(2).unwrap().to_os_str().to_str().unwrap();
         if let Ok(new_uuid) = match_mountpoint(used_device_label) {
-
+            uuid = new_uuid;
+        } else {
+            eprintln!("UUID could not be matched: {}", uuid);
+            IoError::other("UUID could not be matched.");
         }
     }
     
@@ -375,7 +378,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if advanced_schedule == AdvancedSchedule::Yes {
         //returns Ok(Timings)
-        timings = TimingsWidget::new(timings).run(&mut terminal)?;
+        timings = TimingsWidget::new(timings, mounted_drives).run(&mut terminal)?;
     }
     
     let is_media_type: bool = matches!( &proctype, ProcType::Video | ProcType::Audio);

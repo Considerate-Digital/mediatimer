@@ -47,6 +47,7 @@ pub struct FileSelectWidget {
     selected_file: FileSelect,
     can_be_dir: bool,
     proc_type: ProcType,
+    mounted_drives: Vec<(PathBuf, String)>,
     error: bool,
     error_message: String
 }
@@ -61,7 +62,7 @@ impl Default for FileSelectWidget {
             selected_file: Path::new("./").to_path_buf(),
             can_be_dir: false,
             proc_type: ProcType::Video,
-            mounted_drives: Vec<PathBuf>,
+            mounted_drives: Vec::from((PathBuf::new("./"), String::new())),
             error: false,
             error_message: String::from("")
         }
@@ -83,7 +84,7 @@ impl FileSelectWidget {
     }
 
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
-        self.setup_file_explorer(self.mounted_drives);
+        self.setup_file_explorer();
         self.style_file_explorer();
 
         while !self.should_exit {
@@ -288,7 +289,7 @@ impl FileSelectWidget {
         self.file_explorer.set_theme(theme)
     }
 
-    fn setup_file_explorer(&mut self, mounted_drives) {
+    fn setup_file_explorer(&mut self) {
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
@@ -308,7 +309,7 @@ impl FileSelectWidget {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
         } else if mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(&mounted_drives[0]).unwrap();
+            self.file_explorer.set_cwd(self.mounted_drives[0].0).unwrap();
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();

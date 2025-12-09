@@ -458,7 +458,8 @@ pub struct TimingsWidget {
     exit_list: ExitList,
     error_type: ErrorType,
     list_element_entries: TimingsList,
-    schedule: CommonTimings
+    schedule: CommonTimings,
+    mounted_drives: Vec<(PathBuf, String)>
 }
 impl Default for TimingsWidget {
     fn default() -> Self {
@@ -491,6 +492,7 @@ impl Default for TimingsWidget {
                 (Weekday::Sunday(TimingCollection::default())),
             ]),
             schedule: Vec::with_capacity(7)
+            mounted_drives: Vec::new();
         }
     }
 }
@@ -577,7 +579,7 @@ fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
 }
 
 impl TimingsWidget {
-    pub fn new (preset_timings: CommonTimings) -> Self {
+    pub fn new (preset_timings: CommonTimings, mounted_drives) -> Self {
 
         // convert the common-timings to timings
         let parsed_timings: TimingsList = parse_common_timings(preset_timings);
@@ -602,7 +604,8 @@ impl TimingsWidget {
             exit_list: ExitList::default(),
             error_type: ErrorType::Format,
             list_element_entries: parsed_timings,
-            schedule: Vec::with_capacity(7)
+            schedule: Vec::with_capacity(7),
+            mounted_drives,
         }
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
@@ -658,7 +661,6 @@ impl TimingsWidget {
         self.file_explorer.set_theme(theme)
     }
     fn setup_file_explorer(&mut self) {
-        let mounted_drives = identify_mounted_drives();
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
@@ -678,7 +680,7 @@ impl TimingsWidget {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
             self.file_explorer.set_cwd(&path_buf).unwrap();
         } else if mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(&mounted_drives[0]).unwrap();
+            self.file_explorer.set_cwd(self.mounted_drives[0].0).unwrap();
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();
