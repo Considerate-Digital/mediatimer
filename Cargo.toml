@@ -28,3 +28,14 @@ eco = []
 standard = []
 pro = []
 test_schedule=[]
+
+[package.metadata.deb]
+maintainer = "Alex McCartney <alex@considerate.digital>"
+copyright = "2026, Alex McCartney <alex@considerate.digital>"
+license-file = ["LICENSE.md", "0"]
+depends = "$auto"
+priority= "optional"
+assets = [
+  { source = "target/release/mediatimer", dest = "usr/bin/mediatimer", mode = "755" },
+  { source = "README.md", dest = "/usr/share/man/mediatimer/README", mode = "644" },
+]
