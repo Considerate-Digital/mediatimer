@@ -70,7 +70,7 @@ use crate::schedule::timings::{
 };
 
 #[derive(Debug, PartialEq, Display,Clone, AsRefStr)]
-enum Model {
+pub enum Model {
     Eco,
     Standard,
     Pro

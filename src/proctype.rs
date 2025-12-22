@@ -28,7 +28,6 @@ use crate::styles::{
 use crate::Model;
 
 pub struct ProcTypeWidget {
-    model: Model,
     should_exit: bool,
     selected_type: ProcType,
     proc_type_entries: ProcTypeList
@@ -76,7 +75,6 @@ impl ProcTypeWidget {
         match model {
             Model::Eco => {
                 Self {
-                    model,
                     should_exit: false,
                     selected_type: preset_type,
                     proc_type_entries: ProcTypeList::from_iter([
@@ -93,7 +91,6 @@ impl ProcTypeWidget {
             },
             Model::Standard => {
                 Self {
-                    model,
                     should_exit: false,
                     selected_type: preset_type,
                     proc_type_entries: ProcTypeList::from_iter([
@@ -110,7 +107,6 @@ impl ProcTypeWidget {
             },
             Model::Pro => {
                 Self {
-                    model,
                     should_exit: false,
                     selected_type: preset_type,
                     proc_type_entries: ProcTypeList::from_iter([
