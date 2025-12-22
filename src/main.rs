@@ -47,6 +47,13 @@ use crate::landing::LandingWidget;
 mod loading;
 use crate::loading::LoadingWidget;
 
+mod loggers;
+use crate::loggers::{
+    log_info,
+    log_warn,
+    log_error
+};
+
 mod mount;
 use crate::mount::{
     match_mountpoint,
@@ -62,6 +69,12 @@ use crate::schedule::timings::{
     TimingsWidget
 };
 
+#[derive(Debug, PartialEq, Display,Clone, AsRefStr)]
+enum Model {
+    Eco,
+    Standard,
+    Pro
+}
 #[derive(Debug, Display, PartialEq, AsRefStr, Clone)]
 pub enum ProcType {
     Video,
@@ -277,6 +290,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         .output()
         .expect("Media Timer not stopped");
 
+    // Preset model to "pro" version so that all features are enabled if the model details 
+    // cannot be found
+    let mut model: Model = Model::Pro;
+    // read model type
+    if let Ok(model_name) = fs::read_to_string("/etc/adaptableos/MODEL") {
+       model = match model_name.trim().to_lowercase().as_str() {
+            "eco" => Model::Eco,
+            "standard" => Model::Standard,
+            &_ => Model::Pro
+       }
+    } else {
+        log_warn("No Adaptable model set at /etc/adaptableos/MODEL. Default model Pro will be used.");
+    }
+    let selected_model = format!("Model selected: {}", model);
+    log_info(&selected_model);
+
 
     // Find and load any existing config for the user
     let username = whoami::username();
@@ -354,10 +383,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _backend = CrosstermBackend::new(stdout);
     let mut terminal = ratatui::init();
 
-    LandingWidget::default().run(&mut terminal)?;
+    LandingWidget::new(model.clone()).run(&mut terminal)?;
     // returns Ok(ProcType) e.g. Ok(ProcType::Video)
     
-    let proctype = ProcTypeWidget::new(proc_type).run(&mut terminal)?;
+    let proctype = ProcTypeWidget::new(model.clone(), proc_type).run(&mut terminal)?;
     let can_be_dir: bool = matches!(&proctype, ProcType::Slideshow);
     
     if proctype == ProcType::Web {
@@ -366,7 +395,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         // return Ok(PathBuf)
         let proctype_clone = proctype.clone();
-        file = FileSelectWidget::new(file, can_be_dir, proctype_clone, mounted_drives.clone()).run(&mut terminal)?;
+        file = FileSelectWidget::new(model, file, can_be_dir, proctype_clone, mounted_drives.clone()).run(&mut terminal)?;
 
         // if file contains /media/{username}
         let media_point = format!("/media/{}", username); 

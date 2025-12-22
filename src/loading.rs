@@ -100,7 +100,7 @@ impl LoadingWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Loading")
+        Paragraph::new("Media Timer")
             .bold()
             .centered()
             .render(area, buf);
@@ -114,7 +114,9 @@ impl LoadingWidget {
 
     fn render_text(area: Rect, buf: &mut Buffer) {
         let title = Line::raw("Loading").centered();
+        /*
         let _length = title.width() * 4;
+        */
         let block = Block::new()
             .title(title.clone())
             .borders(Borders::TOP)
@@ -146,7 +148,7 @@ impl LoadingWidget {
 impl Widget for &mut LoadingWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
 
-        let [header_area, _, footer_area] = Layout::vertical([
+        let [header_area, main_area, footer_area] = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
             Constraint::Length(1),
@@ -155,7 +157,7 @@ impl Widget for &mut LoadingWidget {
 
         LoadingWidget::render_header(header_area, buf);
         LoadingWidget::render_footer(footer_area, buf);
-        LoadingWidget::render_text(area, buf);
+        LoadingWidget::render_text(main_area, buf);
     }
 }
 

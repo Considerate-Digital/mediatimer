@@ -157,7 +157,7 @@ impl AutoloopWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+        Paragraph::new("Auto Loop")
             .bold()
             .centered()
             .render(area, buf);

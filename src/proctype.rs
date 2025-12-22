@@ -25,7 +25,10 @@ use crate::styles::{
     FOOTER_STYLE
 };
 
+use crate::Model;
+
 pub struct ProcTypeWidget {
+    model: Model,
     should_exit: bool,
     selected_type: ProcType,
     proc_type_entries: ProcTypeList
@@ -69,59 +72,62 @@ impl ProcTypeEntry {
 }
 
 impl ProcTypeWidget {
-    #[cfg(feature="eco")]
-    pub fn new(preset_type: ProcType) -> Self {
-        Self {
-            should_exit: false,
-            selected_type: preset_type,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Video, "A video file, played without audio. Example files: mp4, avi, mkv etc. Most formats are accepted."),
-                (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
-                (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
-                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
-                (ProcType::Web, "A website or other internet resource, accepts a URL"),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
+    pub fn new(model: Model, preset_type: ProcType) -> Self {
+        match model {
+            Model::Eco => {
+                Self {
+                    model,
+                    should_exit: false,
+                    selected_type: preset_type,
+                    proc_type_entries: ProcTypeList::from_iter([
+                        (ProcType::Video, "A video file, played without audio. Example files: mp4, avi, mkv etc. Most formats are accepted."),
+                        (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
+                        (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
+                        (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                        (ProcType::Web, "A website or other internet resource, accepts a URL"),
+                        (ProcType::Browser, "A browser based application or file, such as P5 or html."),
+                        (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
-            ]),
+                    ]),
+                }
+            },
+            Model::Standard => {
+                Self {
+                    model,
+                    should_exit: false,
+                    selected_type: preset_type,
+                    proc_type_entries: ProcTypeList::from_iter([
+                        (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
+                        (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
+                        (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
+                        (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                        (ProcType::Web, "A website or other internet resource, accepts a URL"),
+                        (ProcType::Browser, "A browser based application or file, such as P5 or html."),
+                        (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
+
+                    ]),
+                }
+            },
+            Model::Pro => {
+                Self {
+                    model,
+                    should_exit: false,
+                    selected_type: preset_type,
+                    proc_type_entries: ProcTypeList::from_iter([
+                        (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
+                        (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
+                        (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
+                        (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
+                        (ProcType::Web, "A website or other internet resource, accepts a URL"),
+                        (ProcType::Browser, "A browser based application or file, such as P5 or html."),
+                        (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
+
+                    ]),
+                }
+            }
         }
     }
-    
-    #[cfg(feature="standard")]
-    pub fn new(preset_type: ProcType) -> Self {
-        Self {
-            should_exit: false,
-            selected_type: preset_type,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
-                (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
-                (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
-                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
-                (ProcType::Web, "A website or other internet resource, accepts a URL"),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
 
-            ]),
-        }
-    }
-
-    #[cfg(feature="pro")]
-    pub fn new(preset_type: ProcType) -> Self {
-        Self {
-            should_exit: false,
-            selected_type: preset_type,
-            proc_type_entries: ProcTypeList::from_iter([
-                (ProcType::Video, "A video file. Example files: mp4, avi, mkv etc. Most formats are accepted."),
-                (ProcType::Audio, "An audio file. Example files: mp3, wav, flac etc. Most formats are accepted."),
-                (ProcType::Image, "An image file. Example files: jpg, png, webp etc. Most formats are accepted."),
-                (ProcType::Slideshow, "A slideshow of images. Example files: jpg, png, webp etc. Most formats are accepted. The folder selected must only contain images."),
-                (ProcType::Web, "A website or other internet resource, accepts a URL"),
-                (ProcType::Browser, "A browser based application or file, such as P5 or html."),
-                (ProcType::Executable, "A binary executable or shell script. Use this option to launch complex software installations via a shell script."),
-
-            ]),
-        }
-    }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<ProcType, Box< dyn Error>> {
         // set default value
         // get the index of the selected item
@@ -190,8 +196,11 @@ impl ProcTypeWidget {
 
 
     // rendering logic
-    fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+    fn render_header(&self, area: Rect, buf: &mut Buffer) {
+        let title = Line::from(vec![
+            "Media".into(), 
+        ]);
+        Paragraph::new(title)
             .bold()
             .centered()
             .render(area, buf);
@@ -297,7 +306,7 @@ impl Widget for &mut ProcTypeWidget {
         ])
         .areas(main_area);
 
-        ProcTypeWidget::render_header(header_area, buf);
+        ProcTypeWidget::render_header(self, header_area, buf);
         ProcTypeWidget::render_footer(footer_area, buf);
         self.render_list(list_area, buf);
         self.render_selected_item(item_area, buf);

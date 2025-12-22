@@ -1264,7 +1264,7 @@ impl TimingsWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+        Paragraph::new("Schedule Timings")
             .bold()
             .centered()
             .render(area, buf);

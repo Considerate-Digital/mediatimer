@@ -22,12 +22,20 @@ use crate::styles::{
     TEXT_FG_COLOR,
 };
 
-#[derive(Default)]
+use crate::Model;
+
 pub struct LandingWidget {
+    model: Model,
     should_exit: bool,
 }
 
 impl LandingWidget {
+    pub fn new (model: Model) -> Self {
+        Self {
+            model,
+            should_exit: false
+        }
+    }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<(), Box< dyn Error>> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
@@ -55,8 +63,14 @@ impl LandingWidget {
 
 
     // rendering logic
-    fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+    fn render_header(&self, area: Rect, buf: &mut Buffer) {
+        let title = Line::from(vec![
+            "Media Timer ".into(), 
+            self.model.as_ref().into(),
+            " Setup".into()
+        ]);
+
+        Paragraph::new(title)
             .bold()
             .centered()
             .render(area, buf);
@@ -156,7 +170,7 @@ impl Widget for &mut LandingWidget {
         ])
         .areas(area);
 
-                LandingWidget::render_header(header_area, buf);
+        LandingWidget::render_header(self, header_area, buf);
         LandingWidget::render_footer(footer_area, buf);
         LandingWidget::render_center(main_area, buf);
         /*

@@ -39,7 +39,10 @@ use crate::areas;
 
 use regex::Regex;
 
+use crate::Model;
+
 pub struct FileSelectWidget {
+    model: Model,
     should_exit: bool,
     file_explorer: FileExplorer,
     selected_file: FileSelect,
@@ -55,6 +58,7 @@ type FileSelect = PathBuf;
 impl Default for FileSelectWidget {
     fn default() -> Self {
         Self {
+            model: Model::Pro,
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: Path::new("./").to_path_buf(),
@@ -68,8 +72,9 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<(PathBuf, String)>) -> Self {
+    pub fn new(model: Model, file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<(PathBuf, String)>) -> Self {
         Self {
+            model,
             should_exit: false,
             file_explorer: FileExplorer::new().unwrap(),
             selected_file: file_path,
@@ -131,7 +136,6 @@ impl FileSelectWidget {
     }
         
     // check for video size
-    #[cfg(feature="eco")]
     fn video_compatible(&mut self) -> bool {
         let file_path = self.file_explorer.current().path();
         let vid_height = Command::new("ffprobe")
@@ -147,14 +151,35 @@ impl FileSelectWidget {
         if let Some(height_info) = height_re.captures(&height_string) {
             let height_collected = height_info[1].to_string();
             let height_int: u32 = height_collected.parse::<u32>().unwrap();
-            if height_int > 1080 {
-                self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
-                self.error = true;
-                return false;
-            } else {
-                return true;
-            }
-                
+            let _result = match self.model {
+                Model::Eco => {
+                    if height_int > 1080 {
+                        self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
+                        self.error = true;
+                        return false;
+                    } else {
+                        return true;
+                    }
+                },
+                Model::Standard => {
+                    if height_int > 1440 {
+                        self.error_message = format!("Video resolution is too high ({}). Export video as 1440p (QHD) maximum.", height_int);
+                        self.error = true;
+                        return false;
+                    } else {
+                        return true;
+                    }
+                },
+                Model::Pro => {
+                    if height_int > 2160 {
+                        self.error_message = format!("Video resolution is too high ({}). Export video as 2160p (4K) maximum.", height_int);
+                        self.error = true;
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            };
         } else {
             self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
             self.error = true;
@@ -162,73 +187,9 @@ impl FileSelectWidget {
         return false;
     }
 
-    // check for video size
-    #[cfg(feature="standard")]
-    fn video_compatible(&mut self) -> bool {
-        let file_path = self.file_explorer.current().path();
-        let vid_height = Command::new("ffprobe")
-            .arg("-loglevel")
-            .arg("error")
-            .arg("-show_streams")
-            .arg(&file_path)
-            .output()
-            .expect("height in pixels");
-
-        let height_string = String::from_utf8_lossy(&vid_height.stdout);
-        let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
-        if let Some(height_info) = height_re.captures(&height_string) {
-            if let height_collected = height_info[1].to_string() {
-                let height_int: u32 = height_collected.parse::<u32>().unwrap();
-                if height_int > 1440 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 1440p (QHD) maximum.", height_int);
-                    self.error = true;
-                    return false;
-                } else {
-                    return true;
-                }
-                
-            }
-        } else {
-            self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
-            self.error = true;
-        }
-        return false;
-    }
-
-    // check for video size
-    #[cfg(feature="pro")]
-    fn video_compatible(&mut self) -> bool {
-        let file_path = self.file_explorer.current().path();
-        let vid_height = Command::new("ffprobe")
-            .arg("-loglevel")
-            .arg("error")
-            .arg("-show_streams")
-            .arg(file_path)
-            .output()
-            .expect("height in pixels");
-
-        let height_string = String::from_utf8_lossy(&vid_height.stdout);
-        let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
-        if let Some(height_info) = height_re.captures(&height_string) {
-            let height_collected = height_info[1].to_string();
-                let height_int: u32 = height_collected.parse::<u32>().unwrap();
-                if height_int > 2160 {
-                    self.error_message = format!("Video resolution is too high ({}). Export video as 2160p (4K) maximum.", height_int);
-                    self.error = true;
-                    return false;
-                } else {
-                    return true;
-                }
-                
-        } else {
-            self.error_message = "Video resolution could not be identified. Please check file is a supported video format.".to_string();
-            self.error = true;
-        }
-        false
-    }
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+        Paragraph::new("File")
             .bold()
             .centered()
             .render(area, buf);

@@ -550,7 +550,7 @@ impl WebWidget {
 
     // rendering logic
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Media Timer Setup")
+        Paragraph::new("Web")
             .bold()
             .centered()
             .render(area, buf);

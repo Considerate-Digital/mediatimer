@@ -18,15 +18,14 @@ regex = "1.11.1"
 strum = {version = "0.26.3", features = ["derive"] }
 tui-textarea = "0.7.0"
 whoami = "1.5.2"
+log = "0.4.27"
+systemd-journal-logger = "2.2.1"
 wl-clipboard-rs = "0.9.2"
 
 [dev-dependencies]
 tempfile = "3.19.1"
 
 [features]
-eco = []
-standard = []
-pro = []
 test_schedule=[]
 
 [package.metadata.deb]
