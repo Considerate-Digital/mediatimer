@@ -12,7 +12,6 @@ use std::{
     }
 };
 use regex::Regex;
-use std::error::Error;
 use ratatui::{
     prelude::CrosstermBackend,
 };
