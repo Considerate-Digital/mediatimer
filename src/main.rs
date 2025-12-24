@@ -4,8 +4,10 @@ use std::{
     io,
     io::Write,
     io::Error as IoError,
+    error::Error,
     path::{
         PathBuf,
+        Path
     },
     process::{
         Command
@@ -125,7 +127,7 @@ pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>
 
         // check the schedule format matches 00:00 or 00:00:00
         // move these check to the "to weekday" function
-        let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)").unwrap();
+        let re = Regex::new(r"(^\d{2}:\d{2}-\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$)")?;
         // check the times split correctly
         let parsed_count = string_vec_test.len();  
         let mut re_count = 0;
@@ -273,6 +275,24 @@ fn write_task(task: Task) -> Result<(), IoError> {
    Ok(())
 }
 
+fn fresh_uuid(mut uuid: String, username: &str, file: &PathBuf) -> Result<String, Box<dyn Error>> {
+    // if file contains /media/{username}
+    let media_point = format!("/media/{}", username); 
+    if let Some(file_str) = file.as_os_str().to_str() {
+        if file_str.contains(&media_point) {
+        // check uuid against file path
+        // This passes only the device label in /media/{username}/{label} as this device has 
+        // recently been mounted
+            if let Some(item) = file.components().nth(2) {
+                if let Some(used_device_label) = item.as_os_str().to_str() {
+                    uuid = match_mountpoint(used_device_label)?
+                }
+            } 
+        }
+    }
+        Ok(uuid)
+}
+
 /// Before the program starts, it unmounts and remounts any usb drives.
 /// This is  called in order to unmount and remount any usbs using the naming conventions
 /// that the mediatimer_init uses. The mount points for usb drives must be standardised in
@@ -356,7 +376,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "MT_FILE" => file.push(value.as_str()),
                 "MT_UUID" => uuid.push_str(value.as_str()),
                 "MT_URL" => web_url.push_str(value.as_str()),
-                "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>().unwrap(),
+                "MT_SLIDE_DELAY" => slide_delay = value.parse::<u32>()?,
                 "MT_SCHEDULE" => schedule = match value.as_str() {
                     "true" => AdvancedSchedule::Yes,
                     "false" => AdvancedSchedule::No,
@@ -396,21 +416,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let proctype_clone = proctype.clone();
         file = FileSelectWidget::new(model, file, can_be_dir, proctype_clone, mounted_drives.clone()).run(&mut terminal)?;
 
-        // if file contains /media/{username}
-        let media_point = format!("/media/{}", username); 
-        if file.as_os_str().to_str().unwrap().contains(&media_point) {
-            // check uuid against file path
-            // TODO error checking
-            // This passes only the device label in /media/{username}/{label} as this device has 
-            // recently been mounted
-            let used_device_label = file.components().nth(2).unwrap().as_os_str().to_str().unwrap();
-            if let Ok(new_uuid) = match_mountpoint(used_device_label) {
-                uuid = new_uuid;
-            } else {
-                eprintln!("UUID could not be matched: {}", uuid);
-                IoError::other("UUID could not be matched.");
-            }
-        }
+       uuid = fresh_uuid(uuid, &username, &file)?; 
     }
     
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
