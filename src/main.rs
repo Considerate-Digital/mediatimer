@@ -27,6 +27,8 @@ use strum::{
     AsRefStr
 };
 
+use log::{info, warn, error, LevelFilter};
+
 mod proctype;
 use crate::proctype::ProcTypeWidget;
 
@@ -49,11 +51,6 @@ mod loading;
 use crate::loading::LoadingWidget;
 
 mod loggers;
-use crate::loggers::{
-    log_info,
-    log_warn,
-    log_error
-};
 
 mod mount;
 use crate::mount::{
@@ -206,6 +203,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
         // check if the mediatimer directory exists in home
         if !dir_path.as_path().is_dir() {
             // create the mediatimer directory if it does not exist
+            // If the mediatimer directory cannot be created then this is a critical error
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
                eprintln!("Directory could not be created: {}", er);
                IoError::other("Could not create mediatimer directory.");
@@ -238,7 +236,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
        fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
            let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
            if let Err(e) = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
-               eprintln!("Could not write to file: {}", e);
+               loge!("Could not write to file: {}", e);
            }
        }
        for timing in task.timings.iter() {
@@ -269,8 +267,8 @@ fn write_task(task: Task) -> Result<(), IoError> {
        // write url
        writeln!(file, "MT_URL=\"{}\"", task.url)?;
       } else {
-       eprintln!("Could not find home directory.");
-       IoError::other("Could not find home directory");
+        loge!("Could not find home directory");
+        IoError::other("Could not find home directory");
    }
    Ok(())
 }
@@ -320,10 +318,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             &_ => Model::Pro
        }
     } else {
-        log_warn("No Adaptable model set at /etc/adaptableos/MODEL. Default model Pro will be used.");
+        logw!("No Adaptable model set at /etc/adaptableos/MODEL. Default model Pro will be used.");
     }
     let selected_model = format!("Model selected: {}", model);
-    log_info(&selected_model);
+    logi!("Media Timer model: {}", &selected_model);
 
 
     // Find and load any existing config for the user
@@ -352,7 +350,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     if env_dir_path.exists() {
         if dotenvy::from_path_override(env_dir_path.as_path()).is_err() {
-            eprintln!("Cannot find env vars at path: {}", env_dir_path.display());
+            loge!("Cannot find env vars at path: {}", env_dir_path.display());
         }
         // parse the environmental vars
         for (key, value) in env::vars() {
