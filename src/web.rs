@@ -24,6 +24,15 @@ use std::{
     fs
 };
 
+use log::{
+    info
+};
+use crate::{
+    logi,
+    loge,
+    logw,
+};
+
 /*
 use wl_clipboard_rs::{
     paste::{
@@ -193,25 +202,27 @@ impl Default for WebWidget {
     }
 }
 impl WebWidget {
-    pub fn new (new_url: String, mounted_drives: Vec<(PathBuf, String)>) -> Self {
-
-        Self {
-            message_text: String::new(),
-            file_explorer: FileExplorer::new().unwrap(),
-            selected_file: Path::new("./").to_path_buf(),
-            should_exit: false,
-            current_screen: CurrentScreen::Menu,
-            previous_screen: CurrentScreen::Menu,
-            url: new_url.clone(),
-            operation_selected: Menu::Add,
-            menu_op_list: MenuList::default(),
-            input: new_url.clone(),
-            character_index: 0,
-            input_area: Rect::new(0,0,0,0),
-            exit_list: ExitList::default(),
-            error_type: ErrorType::Format,
-            mounted_drives
-        }
+    pub fn new (new_url: String, mounted_drives: Vec<(PathBuf, String)>) -> Result<Self, Box<dyn Error>> {
+        let file_explorer = FileExplorer::new()?;
+        Ok(
+            Self {
+                message_text: String::new(),
+                file_explorer,
+                selected_file: Path::new("./").to_path_buf(),
+                should_exit: false,
+                current_screen: CurrentScreen::Menu,
+                previous_screen: CurrentScreen::Menu,
+                url: new_url.clone(),
+                operation_selected: Menu::Add,
+                menu_op_list: MenuList::default(),
+                input: new_url.clone(),
+                character_index: 0,
+                input_area: Rect::new(0,0,0,0),
+                exit_list: ExitList::default(),
+                error_type: ErrorType::Format,
+                mounted_drives
+            }
+        )
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<String, Box< dyn Error>> {
 
@@ -261,12 +272,12 @@ impl WebWidget {
         
         self.file_explorer.set_theme(theme)
     }
-    fn setup_file_explorer(&mut self) {
+    fn setup_file_explorer(&mut self) -> Result<(), Box<dyn Error>> {
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir)?;
                 // then highlight the selected file
                 if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
@@ -275,24 +286,25 @@ impl WebWidget {
                         }
                 }
             } else {
-                self.file_explorer.set_cwd("/home/").unwrap();
+                self.file_explorer.set_cwd("/home/")?;
             }
         } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
-            self.file_explorer.set_cwd(&path_buf).unwrap();
+            self.file_explorer.set_cwd(&path_buf)?;
         } else if self.mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone())?;
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();
-            self.file_explorer.set_cwd(path_buf).unwrap();
+            self.file_explorer.set_cwd(path_buf)?;
         } else {
-            self.file_explorer.set_cwd("/home/").unwrap();
+            self.file_explorer.set_cwd("/home/")?;
         }
+        Ok(())
     }
-    fn handle_key(&mut self, key: KeyEvent) {
+    fn handle_key(&mut self, key: KeyEvent) -> Result<(), Box<dyn Error>> {
         if key.kind != KeyEventKind::Press {
-            return;
+            return Ok(());
         }
         match self.current_screen {
             CurrentScreen::Menu => {
@@ -362,9 +374,11 @@ impl WebWidget {
                     KeyCode::Enter => {
                         self.previous_screen = CurrentScreen::Add;
                         self.clean_input();
-                        if !self.url_format_correct() {
+                        let url_format = self.url_format_correct()?;
+                        if !url_format {
                             self.error_type = ErrorType::Format;
                             self.current_screen = CurrentScreen::Error;
+                            logi!("Url format incorrect");
                         } else {
                             self.url = self.input.clone();
                             self.message_text = format!("Url selected: {}", &self.url);
@@ -399,16 +413,18 @@ impl WebWidget {
                         let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         // TODO read file here
-                        let file = fs::File::open(&self.selected_file).expect("Failed to open URL file");
+                        let file = fs::File::open(&self.selected_file)?;
                         let reader = BufReader::new(file);
-                        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>().unwrap();
+                        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
 
 
                         self.input = lines[0].clone();
                         self.clean_input();
-                        if !self.url_format_correct() {
+                        let format_correct = self.url_format_correct()?;
+                        if !format_correct {
                             self.error_type = ErrorType::Format;
                             self.current_screen = CurrentScreen::Error;
+                            logi!("Url format incorrect");
                         } else {
                             // add the new timing to the list
                             self.url = self.input.clone();
@@ -451,13 +467,14 @@ impl WebWidget {
 
             }
         }
+        Ok(())
     }
     fn clean_input(&mut self) {
         self.input = String::from(self.input.trim());
     }
-    fn url_format_correct(&self) -> bool {
-        let re = Regex::new(r"^(https?://)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$").unwrap();
-        re.is_match(&self.input)
+    fn url_format_correct(&self) -> Result<bool, Box<dyn Error>> {
+        let re = Regex::new(r"^(https?://)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$")?;
+        Ok(re.is_match(&self.input))
     }
 
     

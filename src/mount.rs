@@ -4,12 +4,13 @@ use std:: {
         Stdio
     },
     io::{
-        Error,
+        Error as IoError,
         ErrorKind
     },
     path::PathBuf
 };
 use regex::Regex;
+use std::error::Error;
 
 enum Usb {
     SDA1,
@@ -47,19 +48,18 @@ impl Usb {
 
     }
 }
-pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
+pub fn identify_mounted_drives() -> Result<Vec<(PathBuf, String)>, Box<dyn Error>> {
     let mut mounts = Vec::with_capacity(2);
     // find out if any drives mounted, otherwise default to /home/username
     let all_drives = Command::new("lsblk")
         .arg("-l")
         .arg("-o")
         .arg("NAME,HOTPLUG,UUID")
-        .output()
-        .expect("some drives");
+        .output()?;
 
     let all_drives_string = String::from_utf8_lossy(&all_drives.stdout);
     
-    let re = Regex::new(r"sd[a,b,c][1-4]").unwrap();
+    let re = Regex::new(r"sd[a,b,c][1-4]")?;
     for line in all_drives_string.lines() {
         if re.is_match(line) {
             let drive_info = line.split(' ')
@@ -93,19 +93,17 @@ pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
                     .arg("-b")
                     .arg(drive.as_device_path())
                     .stdout(Stdio::piped())
-                    .spawn()
-                    .expect("Failed to get info on usb disks");
+                    .spawn()?;
 
-                let pipe = udc_info.stdout.take().unwrap();
+                let pipe = udc_info.stdout.take().ok_or(IoError::new(ErrorKind::Other, "Could not take stdout"))?;
 
                 let udc_m_grep = Command::new("grep")
                     .arg("MountPoints")
                     .stdin(pipe)
                     .stdout(Stdio::piped())
-                    .spawn()
-                    .expect("Failed to grep the udisksctl output");
+                    .spawn()?;
 
-                let udc_mounted_output = udc_m_grep.wait_with_output().expect("Failed to wait on grep");
+                let udc_mounted_output = udc_m_grep.wait_with_output()?;
                 let _ = udc_info.wait();
 
 
@@ -124,8 +122,7 @@ pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
                         .arg("mount")
                         .arg("-b")
                         .arg(drive.as_device_path())
-                        .output()
-                        .expect("One drive to be mounted");
+                        .output()?;
 
                     let udc_output = String::from_utf8_lossy(&udc_output.stdout);
 
@@ -152,18 +149,17 @@ pub fn identify_mounted_drives() -> Vec<(PathBuf, String)> {
             }
         }
     }
-    mounts
+    Ok(mounts)
 }
 
 // returns uuid string
-pub fn match_mountpoint(device_label: &str) -> Result<String, Error> {
+pub fn match_mountpoint(device_label: &str) -> Result<String, Box<dyn Error>> {
 
     let all_drives = Command::new("lsblk")
         .arg("-l")
         .arg("-o")
         .arg("NAME,HOTPLUG,UUID,MOUNTPOINT")
-        .output()
-        .expect("some drives");
+        .output()?;
 
     let all_drives_string = String::from_utf8_lossy(&all_drives.stdout);
     
@@ -177,5 +173,5 @@ pub fn match_mountpoint(device_label: &str) -> Result<String, Error> {
             return Ok(String::from(drive_info[2]));
         }
     }
-    Err(Error::new(ErrorKind::Other, "Could not match UUID"))
+    Err(Box::new(IoError::new(ErrorKind::Other, "Could not match UUID")))
 }

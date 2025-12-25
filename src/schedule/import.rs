@@ -8,11 +8,22 @@ use std::{
     path::{
         PathBuf,
     },
+    error::Error,
+};
+use log::{
+    info,
+    warn,
+    error
+};
+use crate::{
+    logi,
+    loge,
+    logw
 };
 
 use crate::Timings;
 
-pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
+pub fn import_schedule(schedule_path: PathBuf) -> Result<Vec<Weekday>, Box<dyn Error>>  {
     // set up the config vars
     let timings: Timings = Vec::with_capacity(7);
     let mut monday: Weekday = Weekday::Monday(Vec::with_capacity(2));
@@ -25,7 +36,7 @@ pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
     
     if schedule_path.exists() {
         if dotenvy::from_path_override(schedule_path.as_path()).is_err() {
-            eprintln!("Cannot find env vars at path: {}", schedule_path.display());
+            loge!("Cannot open file containing env vars: {}", schedule_path.display());
         }
         // parse the environmental vars
         for (key, value) in env::vars() {
@@ -42,10 +53,10 @@ pub fn import_schedule(schedule_path: PathBuf) -> Vec<Weekday>  {
             }
         }
 
-        return vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday];
+        return Ok(vec![monday, tuesday, wednesday, thursday, friday, saturday, sunday]);
     }
 
-    timings
+    Ok(timings)
 }
 
 

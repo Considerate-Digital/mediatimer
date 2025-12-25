@@ -40,6 +40,7 @@ use crate::areas;
 use regex::Regex;
 
 use crate::Model;
+type FileSelect = PathBuf;
 
 pub struct FileSelectWidget {
     model: Model,
@@ -53,8 +54,8 @@ pub struct FileSelectWidget {
     error_message: String
 }
 
-type FileSelect = PathBuf;
 
+// used for tests
 impl Default for FileSelectWidget {
     fn default() -> Self {
         Self {
@@ -72,18 +73,21 @@ impl Default for FileSelectWidget {
 }
 
 impl FileSelectWidget {
-    pub fn new(model: Model, file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<(PathBuf, String)>) -> Self {
-        Self {
-            model,
-            should_exit: false,
-            file_explorer: FileExplorer::new().unwrap(),
-            selected_file: file_path,
-            can_be_dir,
-            proc_type,
-            mounted_drives,
-            error: false,
-            error_message: String::from("")
-        }
+    pub fn new(model: Model, file_path: PathBuf, can_be_dir: bool, proc_type: ProcType, mounted_drives: Vec<(PathBuf, String)>) -> Result<Self, Box<dyn Error>> {
+        let file_explorer = FileExplorer::new()?;
+        Ok(
+            Self {
+                model,
+                should_exit: false,
+                file_explorer,
+                selected_file: file_path,
+                can_be_dir,
+                proc_type,
+                mounted_drives,
+                error: false,
+                error_message: String::from("")
+            }
+        )
     }
 
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
@@ -104,9 +108,9 @@ impl FileSelectWidget {
         Ok(self.selected_file)
     }
 
-    fn handle_key(&mut self, key: KeyEvent) {
+    fn handle_key(&mut self, key: KeyEvent) -> Result<(), Box<dyn Error>> {
         if key.kind != KeyEventKind::Press {
-            return;
+            return Ok(());
         }
         let is_dir = self.file_explorer.current().is_dir();
         match key.code {
@@ -122,7 +126,8 @@ impl FileSelectWidget {
                     self.selected_file = current_path_buf;
                     self.should_exit = true;
                 } else if self.proc_type == ProcType::Video {
-                        if self.video_compatible() {
+                    let video_compatible = self.video_compatible()?;
+                        if video_compatible {
                             self.selected_file = self.file_explorer.current().path().to_path_buf();
                             self.should_exit = true;
                         }
@@ -133,50 +138,50 @@ impl FileSelectWidget {
             }
             _ => {}
         }
+        Ok(())
     }
         
     // check for video size
-    fn video_compatible(&mut self) -> bool {
+    fn video_compatible(&mut self) -> Result<bool, Box<dyn Error>> {
         let file_path = self.file_explorer.current().path();
         let vid_height = Command::new("ffprobe")
             .arg("-loglevel")
             .arg("error")
             .arg("-show_streams")
             .arg(&file_path)
-            .output()
-            .expect("height in pixels");
+            .output()?;
 
         let height_string = String::from_utf8_lossy(&vid_height.stdout);
-        let height_re = Regex::new(r"height=(?<height>\d+)").unwrap();
+        let height_re = Regex::new(r"height=(?<height>\d+)")?;
         if let Some(height_info) = height_re.captures(&height_string) {
             let height_collected = height_info[1].to_string();
-            let height_int: u32 = height_collected.parse::<u32>().unwrap();
+            let height_int: u32 = height_collected.parse::<u32>()?;
             let _result = match self.model {
                 Model::Eco => {
                     if height_int > 1080 {
                         self.error_message = format!("Video resolution is too high ({}). Export video as 1080p (HD) maximum.", height_int);
                         self.error = true;
-                        return false;
+                        return Ok(false);
                     } else {
-                        return true;
+                        return Ok(true);
                     }
                 },
                 Model::Standard => {
                     if height_int > 1440 {
                         self.error_message = format!("Video resolution is too high ({}). Export video as 1440p (QHD) maximum.", height_int);
                         self.error = true;
-                        return false;
+                        return Ok(false);
                     } else {
-                        return true;
+                        return Ok(true);
                     }
                 },
                 Model::Pro => {
                     if height_int > 2160 {
                         self.error_message = format!("Video resolution is too high ({}). Export video as 2160p (4K) maximum.", height_int);
                         self.error = true;
-                        return false;
+                        return Ok(false);
                     } else {
-                        return true;
+                        return Ok(true);
                     }
                 }
             };
@@ -184,7 +189,7 @@ impl FileSelectWidget {
             self.error_message = format!("Video resolution could not be identified. Please check file is a supported video format.");
             self.error = true;
         }
-        return false;
+        return Ok(false);
     }
 
     // rendering logic
@@ -245,12 +250,12 @@ impl FileSelectWidget {
         self.file_explorer.set_theme(theme)
     }
 
-    fn setup_file_explorer(&mut self) {
+    fn setup_file_explorer(&mut self) -> Result<(), Box<dyn Error>> {
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir)?;
                 // then highlight the selected file
                 if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
@@ -259,20 +264,21 @@ impl FileSelectWidget {
                         }
                 }
             } else {
-                self.file_explorer.set_cwd("/home/").unwrap();
+                self.file_explorer.set_cwd("/home/")?;
             }
         } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
-            self.file_explorer.set_cwd(&path_buf).unwrap();
+            self.file_explorer.set_cwd(&path_buf)?;
         } else if self.mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone())?;
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();
-            self.file_explorer.set_cwd(path_buf).unwrap();
+            self.file_explorer.set_cwd(path_buf)?;
         } else {
-            self.file_explorer.set_cwd("/home/").unwrap();
+            self.file_explorer.set_cwd("/home/")?;
         }
+        Ok(())
     }
     
     fn render_file_explorer(&mut self, area: Rect, buf: &mut Buffer) {

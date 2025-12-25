@@ -51,6 +51,9 @@ mod loading;
 use crate::loading::LoadingWidget;
 
 mod loggers;
+use crate::loggers::{
+    setup_logger
+};
 
 mod mount;
 use crate::mount::{
@@ -194,6 +197,13 @@ impl Task {
     }
 }
 
+fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
+   let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
+   if let Err(e) = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
+       loge!("Could not write to file: {}", e);
+   }
+}
+
 fn write_task(task: Task) -> Result<(), IoError> {
    if let Some(dir) = home::home_dir() {
         // check if dir exists
@@ -232,13 +242,7 @@ fn write_task(task: Task) -> Result<(), IoError> {
             AdvancedSchedule::No => "false"
        });
 
-       // This function should be converted to a closure
-       fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
-           let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
-           if let Err(e) = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
-               loge!("Could not write to file: {}", e);
-           }
-       }
+       
        for timing in task.timings.iter() {
            if let Ok(file_clone) = file.try_clone() {
                match timing {
@@ -288,7 +292,7 @@ fn fresh_uuid(mut uuid: String, username: &str, file: &PathBuf) -> Result<String
             } 
         }
     }
-        Ok(uuid)
+    Ok(uuid)
 }
 
 /// Before the program starts, it unmounts and remounts any usb drives.
@@ -306,6 +310,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("mediatimer_init.service")
         .output()
         .expect("Media Timer not stopped");
+
+    let _start_logging = setup_logger();
 
     // Preset model to "pro" version so that all features are enabled if the model details 
     // cannot be found
@@ -329,7 +335,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
 
 
-    let mounted_drives = identify_mounted_drives();
+    let mounted_drives = identify_mounted_drives()?;
 
     // set up the config vars
     let mut file = PathBuf::new();
@@ -408,11 +414,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     if proctype == ProcType::Web {
         //returns Ok(String);
-        web_url = WebWidget::new(web_url, mounted_drives.clone()).run(&mut terminal)?;
+        web_url = WebWidget::new(web_url, mounted_drives.clone())?.run(&mut terminal)?;
     } else {
         // return Ok(PathBuf)
         let proctype_clone = proctype.clone();
-        file = FileSelectWidget::new(model, file, can_be_dir, proctype_clone, mounted_drives.clone()).run(&mut terminal)?;
+        file = FileSelectWidget::new(model, file, can_be_dir, proctype_clone, mounted_drives.clone())?.run(&mut terminal)?;
 
        uuid = fresh_uuid(uuid, &username, &file)?; 
     }
@@ -421,7 +427,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if advanced_schedule == AdvancedSchedule::Yes {
         //returns Ok(Timings)
-        timings = TimingsWidget::new(timings, mounted_drives).run(&mut terminal)?;
+        timings = TimingsWidget::new(timings, mounted_drives)?.run(&mut terminal)?;
     }
     
     let is_media_type: bool = matches!( &proctype, ProcType::Video | ProcType::Audio);
@@ -434,7 +440,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // write_task 
     if let Err(e) = write_task(task) {
-        eprintln!("Error writing tasks to env file: {}", e);
+        loge!("Error writing tasks to env file: {}", e);
     }
     
     // loading issues the command to enable the mediatimer_init service

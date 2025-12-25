@@ -97,8 +97,9 @@ impl AutoloopWidget {
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Autoloop, Box< dyn Error>> {
         // set the preset
-        let index = self.list_element_entries.list.iter().position(|i| i.list_element == self.selected_type).unwrap();
-        self.list_element_entries.state.select(Some(index));
+        if let Some(index) = self.list_element_entries.list.iter().position(|i| i.list_element == self.selected_type) {
+            self.list_element_entries.state.select(Some(index));
+        }
 
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;

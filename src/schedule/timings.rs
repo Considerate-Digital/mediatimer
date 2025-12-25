@@ -544,7 +544,7 @@ impl TimingsEntry {
     }
 }
 
-fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
+fn parse_common_timings(c_timings: CommonTimings) -> Result<TimingsList, Box<dyn Error>> {
 
     let days_with_timings_collection: Vec<_> = c_timings.iter()
         .map(|ct| common_to_local_weekday(ct.clone()))
@@ -562,50 +562,55 @@ fn parse_common_timings(c_timings: CommonTimings) -> TimingsList {
             let t_entry = TimingsEntry::new(day);
             t_list.list.push(t_entry); 
         }
-        t_list
+        Ok(t_list)
 
     } else {
-        TimingsList::from_iter([
-            (Weekday::Monday(TimingCollection::default())),
-            (Weekday::Tuesday(TimingCollection::default())),
-            (Weekday::Wednesday(TimingCollection::default())),
-            (Weekday::Thursday(TimingCollection::default())),
-            (Weekday::Friday(TimingCollection::default())),
-            (Weekday::Saturday(TimingCollection::default())),
-            (Weekday::Sunday(TimingCollection::default())),
-        ])
+        Ok(
+            TimingsList::from_iter([
+                (Weekday::Monday(TimingCollection::default())),
+                (Weekday::Tuesday(TimingCollection::default())),
+                (Weekday::Wednesday(TimingCollection::default())),
+                (Weekday::Thursday(TimingCollection::default())),
+                (Weekday::Friday(TimingCollection::default())),
+                (Weekday::Saturday(TimingCollection::default())),
+                (Weekday::Sunday(TimingCollection::default())),
+            ])
+        )
     }
 }
 
 impl TimingsWidget {
-    pub fn new (preset_timings: CommonTimings, mounted_drives: Vec<(PathBuf, String)>) -> Self {
+    pub fn new (preset_timings: CommonTimings, mounted_drives: Vec<(PathBuf, String)>) -> Result<Self, Box<dyn Error>> {
 
         // convert the common-timings to timings
-        let parsed_timings: TimingsList = parse_common_timings(preset_timings);
+        let parsed_timings: TimingsList = parse_common_timings(preset_timings)?;
+        let file_explorer = FileExplorer::new()?;
 
-        Self {
-            message_text: String::new(),
-            file_explorer: FileExplorer::new().unwrap(),
-            selected_file: Path::new("./").to_path_buf(),
-            should_exit: false,
-            current_screen: CurrentScreen::Weekdays,
-            previous_screen: CurrentScreen::Weekdays,
-            weekday_selected: 0,
-            timing_selected: 0,
-            operation_selected: TimingOp::Add,
-            timing_op_list: TimingOpList::default(),
-            input: String::new(),
-            character_index: 0,
-            input_area: Rect::new(0,0,0,0),
-            del_op_list: DelOpList::default(),
-            duplicate_op_list: DuplicateOpList::default(),
-            duplicate_day_op_list: DuplicateDayOpList::default(),
-            exit_list: ExitList::default(),
-            error_type: ErrorType::Format,
-            list_element_entries: parsed_timings,
-            schedule: Vec::with_capacity(7),
-            mounted_drives,
-        }
+        Ok(
+            Self {
+                message_text: String::new(),
+                file_explorer,
+                selected_file: Path::new("./").to_path_buf(),
+                should_exit: false,
+                current_screen: CurrentScreen::Weekdays,
+                previous_screen: CurrentScreen::Weekdays,
+                weekday_selected: 0,
+                timing_selected: 0,
+                operation_selected: TimingOp::Add,
+                timing_op_list: TimingOpList::default(),
+                input: String::new(),
+                character_index: 0,
+                input_area: Rect::new(0,0,0,0),
+                del_op_list: DelOpList::default(),
+                duplicate_op_list: DuplicateOpList::default(),
+                duplicate_day_op_list: DuplicateDayOpList::default(),
+                exit_list: ExitList::default(),
+                error_type: ErrorType::Format,
+                list_element_entries: parsed_timings,
+                schedule: Vec::with_capacity(7),
+                mounted_drives,
+            }
+        )
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
 
@@ -717,9 +722,9 @@ impl TimingsWidget {
         }
     }
 
-    fn handle_key(&mut self, key: KeyEvent) {
+    fn handle_key(&mut self, key: KeyEvent) -> Result<(), Box<dyn Error>> {
         if key.kind != KeyEventKind::Press {
-            return;
+            return Ok(());
         }
         match self.current_screen {
             CurrentScreen::Weekdays => {
@@ -1021,7 +1026,7 @@ impl TimingsWidget {
                         let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
                         let schedule = import::import_schedule(self.selected_file.clone());
-                        self.list_element_entries = parse_common_timings(schedule);
+                        self.list_element_entries = parse_common_timings(schedule?)?;
                         self.message_text = String::from("Schedule import successful");
                         self.current_screen = CurrentScreen::Message;
                         },
@@ -1058,6 +1063,7 @@ impl TimingsWidget {
 
             }
         }
+        Ok(())
     }
     // this needs to extract the whole string and parse to two u32s that are the full times 
     // combined into one u32
@@ -2138,7 +2144,7 @@ mod tests {
             CommonWeekday::Sunday(Vec::new()),
         ];
 
-        let parsed_timings: TimingsList = parse_common_timings(common_timings);
+        let parsed_timings: TimingsList = parse_common_timings(common_timings).unwrap();
         assert_eq!(parsed_timings.list[0].list_element, String::from("Monday"));
         assert_eq!(parsed_timings.list[6].list_element, String::from("Sunday"));
     }
