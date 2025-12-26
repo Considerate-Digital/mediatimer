@@ -91,8 +91,8 @@ impl FileSelectWidget {
     }
 
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<FileSelect, Box< dyn Error>> {
-        self.setup_file_explorer();
-        self.style_file_explorer();
+        let _file_explorer_init = self.setup_file_explorer()?;
+        let _file_explorer_style_init = self.style_file_explorer();
 
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut self, f.area()))?;
@@ -101,7 +101,7 @@ impl FileSelectWidget {
             self.file_explorer.handle(&event)?;
 
             if let Event::Key(key) = event {
-                self.handle_key(key);
+                let _handle_result = self.handle_key(key)?;
             };
 
         }

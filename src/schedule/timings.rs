@@ -614,8 +614,8 @@ impl TimingsWidget {
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<Timings, Box< dyn Error>> {
 
-        self.setup_file_explorer();
-        self.style_file_explorer();
+        let _file_explorer_init = self.setup_file_explorer()?;
+        let _file_explorer_style_init = self.style_file_explorer();
 
         while !self.should_exit {
             terminal.draw(|f| {
@@ -638,7 +638,7 @@ impl TimingsWidget {
             }
 
             if let Event::Key(key) = event {
-                self.handle_key(key);
+                let _handle_result = self.handle_key(key)?;
                 //self.text_area.input(key);
             }
         }
@@ -664,12 +664,12 @@ impl TimingsWidget {
         
         self.file_explorer.set_theme(theme)
     }
-    fn setup_file_explorer(&mut self) {
+    fn setup_file_explorer(&mut self) -> Result<(), Box<dyn Error>> {
         let username = whoami::username();
 
         if self.selected_file.to_str() != Some("") && self.selected_file.is_file() {
             if let Some(parent_dir) = self.selected_file.parent() {
-                self.file_explorer.set_cwd(parent_dir).unwrap();
+                self.file_explorer.set_cwd(parent_dir)?;
                 // then highlight the selected file
                 if let Some(file_os_str) = self.selected_file.file_name() && let Some(file_name) = file_os_str.to_str() {
                         let files = self.file_explorer.files();
@@ -678,20 +678,21 @@ impl TimingsWidget {
                         }
                 }
             } else {
-                self.file_explorer.set_cwd("/home/").unwrap();
+                self.file_explorer.set_cwd("/home/")?;
             }
         } else if self.mounted_drives.len() > 1 && !username.is_empty() {
             let path_buf: PathBuf = ["/media/", &username].iter().collect();
-            self.file_explorer.set_cwd(&path_buf).unwrap();
+            self.file_explorer.set_cwd(&path_buf)?;
         } else if self.mounted_drives.len() == 1 {
-            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone()).unwrap();
+            self.file_explorer.set_cwd(self.mounted_drives[0].0.clone())?;
         } else if !username.is_empty() {
             let username = whoami::username();
             let path_buf: PathBuf = ["/home/", &username].iter().collect();
-            self.file_explorer.set_cwd(path_buf).unwrap();
+            self.file_explorer.set_cwd(path_buf)?;
         } else {
-            self.file_explorer.set_cwd("/home/").unwrap();
+            self.file_explorer.set_cwd("/home/")?;
         }
+        Ok(())
     }
 
     fn compile_schedule(&mut self) {
@@ -820,7 +821,7 @@ impl TimingsWidget {
                                 },
                                 TimingOp::Export => {
                                     self.compile_schedule();
-                                    export::export_schedule(self.schedule.clone());
+                                    let _export_schedule = export::export_schedule(self.schedule.clone())?;
                                     self.current_screen = CurrentScreen::Export;
                                 },
                                 TimingOp::Exit => self.current_screen = CurrentScreen::Exit
@@ -841,10 +842,13 @@ impl TimingsWidget {
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
                         self.previous_screen = CurrentScreen::Add;
-                        if !self.timing_format_correct() {
+                        let timing_format_correct = self.timing_format_correct()?;
+                        let timing_format_no_clash = self.timing_format_no_clash()?;
+
+                        if !timing_format_correct {
                             self.error_type = ErrorType::Format;
                             self.current_screen = CurrentScreen::Error;
-                        } else if !self.timing_format_no_clash() {
+                        } else if !timing_format_no_clash {
                             self.error_type = ErrorType::Clash;
                             self.current_screen = CurrentScreen::Error;
                         } else {
@@ -875,11 +879,13 @@ impl TimingsWidget {
                     KeyCode::Char(to_insert) => self.enter_char(to_insert),
                     KeyCode::Enter => {
                         self.previous_screen = CurrentScreen::Edit;
+                        let timing_format_correct = self.timing_format_correct()?;
+                        let timing_format_no_clash = self.timing_format_no_clash()?;
                         // check, then parse the timing
-                        if !self.timing_format_correct() {
+                        if !timing_format_correct {
                             self.error_type = ErrorType::Format;
                             self.current_screen = CurrentScreen::Error;
-                        } else if !self.timing_format_no_clash() {
+                        } else if !timing_format_no_clash {
                             self.error_type = ErrorType::Clash;
                             self.current_screen = CurrentScreen::Error;
                         } else {
@@ -1067,57 +1073,57 @@ impl TimingsWidget {
     }
     // this needs to extract the whole string and parse to two u32s that are the full times 
     // combined into one u32
-    fn extract_timings_from_input(&self, input: &str) -> (u32, u32) {
+    fn extract_timings_from_input(&self, input: &str) -> Result<(u32, u32), Box<dyn Error>> {
         let two_timings = input.split("-").collect::<Vec<&str>>();
 
-         let t_start = two_timings[0].split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
-        let t_end = two_timings[1].split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+        let t_start = two_timings[0].split(":").collect::<Vec<&str>>().join("").parse::<u32>()?;
+        let t_end = two_timings[1].split(":").collect::<Vec<&str>>().join("").parse::<u32>()?;
 
-        (t_start, t_end)
+        Ok((t_start, t_end))
     }
 
-    fn timing_format_correct(&self) -> bool {
-        let re = Regex::new(r"^(?<h>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]$").unwrap();
+    fn timing_format_correct(&self) -> Result<bool, Box<dyn Error>> {
+        let re = Regex::new(r"^(?<h>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]-(?<h2>[0-2][0-9]):[0-5][0-9]:[0-5][0-9]$")?;
         if re.is_match(&self.input) { 
-            let (_, [start, end]) = re.captures(&self.input).unwrap().extract();
-            //let hour_1 = times.name("h").unwrap().as_str();
-            let hour_1 = start.parse::<u32>().unwrap();
-            //let hour_2 = times.name("h2").unwrap().as_str();
-            let hour_2 = end.parse::<u32>().unwrap();
-            
-            // This checks if the hour is less than 24
-            // The minutes and seconds are already checked by the regex
-            hour_1 < 24 && hour_2 < 24
-        } else {
-            false
+            if let Some(output) = re.captures(&self.input) {
+                let (_, [start, end]) = output.extract();
+                let hour_1 = start.parse::<u32>()?;
+                let hour_2 = end.parse::<u32>()?;
+                
+                // This checks if the hour is less than 24
+                // The minutes and seconds are already checked by the regex
+                if hour_1 < 24 && hour_2 < 24 {
+                    return Ok(true);
+                } 
+            }
         }
-
+        Ok(false)
     }
 
-    fn timing_format_no_clash(&self) -> bool {
+    fn timing_format_no_clash(&self) -> Result<bool, Box<dyn Error>> {
         // iterate through each timing for the current day
         // if input start is after any other start but before the end it will clash
         // Must not include current timing being edited
-        let (start, end) = self.extract_timings_from_input(&self.input);
+        let (start, end) = self.extract_timings_from_input(&self.input)?;
         for (i, t) in self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter().enumerate() {
-            if self.current_screen == CurrentScreen::Edit && i == self.timing_selected { return true }
-            let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
+            if self.current_screen == CurrentScreen::Edit && i == self.timing_selected { return Ok(true) }
+            let t_start = t.timing.0.split(":").collect::<Vec<&str>>().join("").parse::<u32>()?;
             
-            let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>().unwrap();
-
-            // TODO check this logic
+            let t_end = t.timing.1.split(":").collect::<Vec<&str>>().join("").parse::<u32>()?;
+    
+            // verbose for clarity
             #[allow(clippy::if_same_then_else)]
             if start <= t_start && end >= t_start {
-                return false;
+                return Ok(false);
             } else if start <= t_start && end >= t_end {
-                return false;
+                return Ok(false);
             } else if start <= t_end && end >= t_end {
-                return false;
+                return Ok(false);
             } else if start >= t_start &&  end <= t_end {
-                return false;
+                return Ok(false);
             }
         }
-        true
+        Ok(true)
     }
 
     fn parse_timing_from_input(&self) -> Timing {

@@ -14,7 +14,6 @@ pub fn setup_logger() -> Result<(), Box<dyn Error>> {
 macro_rules! logi {
     ($($t:tt)*) => {{
        info!($($t)*); 
-       println!($($t)*);
     }};
 }
 
@@ -22,7 +21,6 @@ macro_rules! logi {
 macro_rules! logw {
     ($($t:tt)*) => {{
        warn!($($t)*); 
-       println!($($t)*);
     }};
 }
 
@@ -34,25 +32,4 @@ macro_rules! loge {
     }};
 }
 
-pub fn log_info(message: &str) {
-    /*
-   info!(message); 
-   println!(message);
-    */
-}
-
-#[allow(dead_code)]
-pub fn log_warn(message: &str) {
-    /*
-    warn!(message);
-    println!(message);
-    */
-}
-
-pub fn log_error(message: &str) {
-    /*
-    error!(message);
-    eprintln!(message);
-    */
-}
 

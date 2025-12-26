@@ -7,7 +7,6 @@ use std::{
     error::Error,
     path::{
         PathBuf,
-        Path
     },
     process::{
         Command
@@ -27,7 +26,7 @@ use strum::{
     AsRefStr
 };
 
-use log::{info, warn, error, LevelFilter};
+use log::{info, warn, error};
 
 mod proctype;
 use crate::proctype::ProcTypeWidget;

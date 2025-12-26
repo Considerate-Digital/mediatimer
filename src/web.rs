@@ -226,8 +226,8 @@ impl WebWidget {
     }
     pub fn run (mut self, terminal: &mut DefaultTerminal) -> Result<String, Box< dyn Error>> {
 
-        self.setup_file_explorer();
-        self.style_file_explorer();
+        let _file_explorer_init = self.setup_file_explorer()?;
+        let _file_explorer_style_init = self.style_file_explorer();
 
         while !self.should_exit {
             terminal.draw(|f| {
@@ -246,7 +246,7 @@ impl WebWidget {
                         let _ = self.file_explorer.handle(&event);
                 }
                 if let Event::Key(key) = event {
-                    self.handle_key(key);
+                    let _handle = self.handle_key(key)?;
                     //self.text_area.input(key);
                 }
         }
