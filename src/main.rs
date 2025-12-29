@@ -303,14 +303,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // issue command to pause mediatimer_init
     // systemctl --user stop mediatimer_init.service
-    let _stop_mediatimer_init = Command::new("systemctl")
+    let stop_mediatimer_init = Command::new("systemctl")
         .arg("--user")
         .arg("stop")
         .arg("mediatimer_init.service")
-        .output()
-        .expect("Media Timer not stopped");
+        .output()?;
 
-    let _start_logging = setup_logger();
+    if let Err(e) = setup_logger() {
+        loge!("Logger failed to initialise");
+    }
+    logi!("Initialising");
+    logi!("Loggers initialised");
+   
 
     // Preset model to "pro" version so that all features are enabled if the model details 
     // cannot be found
@@ -334,7 +338,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let env_dir_path: PathBuf =["/home/", &username, ".mediatimer_config/vars"].iter().collect();
 
 
-    let mounted_drives = identify_mounted_drives()?;
+    // mounts all of the drives automatically using udisksctl
+    let identified_drives = identify_mounted_drives();
+    let mut mounted_drives = Vec::new();
+    let _ = match identified_drives {
+        Ok(drives) => mounted_drives = drives,
+        Err(e) => {
+            logw!("No storage devices identified, Error: {}", e);
+        }
+    };
 
     // set up the config vars
     let mut file = PathBuf::new();
