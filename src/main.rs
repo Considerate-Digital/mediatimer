@@ -303,14 +303,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // issue command to pause mediatimer_init
     // systemctl --user stop mediatimer_init.service
-    let stop_mediatimer_init = Command::new("systemctl")
+    let _stop_mediatimer_init = Command::new("systemctl")
         .arg("--user")
         .arg("stop")
         .arg("mediatimer_init.service")
         .output()?;
 
     if let Err(e) = setup_logger() {
-        loge!("Logger failed to initialise");
+        loge!("Logger failed to initialise: {}", e);
     }
     logi!("Initialising");
     logi!("Loggers initialised");
