@@ -1,7 +1,5 @@
 use log::{LevelFilter};
 use std::error::Error;
-
-//use std::io::Error;
 use systemd_journal_logger::JournalLog;
 
 pub fn setup_logger() -> Result<(), Box<dyn Error>> {
