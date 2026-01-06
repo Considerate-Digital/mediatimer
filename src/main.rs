@@ -154,13 +154,13 @@ pub fn to_weekday(value: String, day: Weekday) -> Result<Weekday, Box<dyn Error>
         }
     }
     match day {
-       Weekday::Monday(_) =>  Ok(Weekday::Monday(day_schedule)),
-       Weekday::Tuesday(_) => Ok(Weekday::Tuesday(day_schedule)),
-       Weekday::Wednesday(_) => Ok(Weekday::Wednesday(day_schedule)),
-       Weekday::Thursday(_) => Ok(Weekday::Thursday(day_schedule)),
-       Weekday::Friday(_) => Ok(Weekday::Friday(day_schedule)),
-       Weekday::Saturday(_) => Ok(Weekday::Saturday(day_schedule)),
-       Weekday::Sunday(_) => Ok(Weekday::Sunday(day_schedule))
+        Weekday::Monday(_) =>  Ok(Weekday::Monday(day_schedule)),
+        Weekday::Tuesday(_) => Ok(Weekday::Tuesday(day_schedule)),
+        Weekday::Wednesday(_) => Ok(Weekday::Wednesday(day_schedule)),
+        Weekday::Thursday(_) => Ok(Weekday::Thursday(day_schedule)),
+        Weekday::Friday(_) => Ok(Weekday::Friday(day_schedule)),
+        Weekday::Saturday(_) => Ok(Weekday::Saturday(day_schedule)),
+        Weekday::Sunday(_) => Ok(Weekday::Sunday(day_schedule))
     }
 
 }
@@ -196,15 +196,13 @@ impl Task {
     }
 }
 
-fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) {
-   let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
-   if let Err(e) = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(",")) {
-       loge!("Could not write to file: {}", e);
-   }
+pub fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) -> Result<(), Box<dyn Error>> {
+    let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
+    let _write_file = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(","))?;
+    Ok(())
 }
-
-fn write_task(task: Task) -> Result<(), IoError> {
-   if let Some(dir) = home::home_dir() {
+fn write_task(task: Task) -> Result<(), Box<dyn Error>> {
+    if let Some(dir) = home::home_dir() {
         // check if dir exists
         let mut dir_path = dir;
         dir_path.push(".mediatimer_config");
@@ -214,8 +212,8 @@ fn write_task(task: Task) -> Result<(), IoError> {
             // create the mediatimer directory if it does not exist
             // If the mediatimer directory cannot be created then this is a critical error
             if let Err(er) = fs::create_dir(dir_path.as_path()) {
-               eprintln!("Directory could not be created: {}", er);
-               IoError::other("Could not create mediatimer directory.");
+                eprintln!("Directory could not be created: {}", er);
+                IoError::other("Could not create mediatimer directory.");
             }
         }
 
@@ -227,53 +225,53 @@ fn write_task(task: Task) -> Result<(), IoError> {
             .truncate(true)
             .write(true)
             .open(&dir_path)?;
-    
-       // write proctype
-       writeln!(file, "MT_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
 
-       //write autoloop
-       let _ = writeln!(file, "MT_AUTOLOOP=\"{}\"", match task.auto_loop {
+        // write proctype
+        writeln!(file, "MT_PROCTYPE=\"{}\"", task.proc_type.to_string().to_lowercase())?;
+
+        //write autoloop
+        let _ = writeln!(file, "MT_AUTOLOOP=\"{}\"", match task.auto_loop {
             Autoloop::Yes => "true",
             Autoloop::No => "false"
         });
-       let _ = writeln!(file, "MT_SCHEDULE=\"{}\"", match task.advanced_schedule {
+        let _ = writeln!(file, "MT_SCHEDULE=\"{}\"", match task.advanced_schedule {
             AdvancedSchedule::Yes => "true",
             AdvancedSchedule::No => "false"
-       });
+        });
 
-       
-       for timing in task.timings.iter() {
-           if let Ok(file_clone) = file.try_clone() {
-               match timing {
-                   Weekday::Monday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Tuesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Wednesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Thursday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Friday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Saturday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-                   Weekday::Sunday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
-              }
-           }
-       }
-       
 
-       // write file
-       writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
+        for timing in task.timings.iter() {
+            if let Ok(file_clone) = file.try_clone() {
+                let _ = match timing {
+                    Weekday::Monday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Tuesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Wednesday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Thursday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Friday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Saturday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                    Weekday::Sunday(schedule) => format_print_day_schedule(timing.to_string(), schedule.to_vec(), file_clone),
+                };
+            }
+        }
 
-       // write uuid
-       writeln!(file, "MT_UUID=\"{}\"", task.uuid)?;
 
-       // write slide delay
+        // write file
+        writeln!(file, "MT_FILE=\"{}\"", task.file.display())?;
 
-       writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
+        // write uuid
+        writeln!(file, "MT_UUID=\"{}\"", task.uuid)?;
 
-       // write url
-       writeln!(file, "MT_URL=\"{}\"", task.url)?;
-      } else {
+        // write slide delay
+
+        writeln!(file, "MT_SLIDE_DELAY=\"{}\"", task.slide_delay)?;
+
+        // write url
+        writeln!(file, "MT_URL=\"{}\"", task.url)?;
+    } else {
         loge!("Could not find home directory");
         IoError::other("Could not find home directory");
-   }
-   Ok(())
+    }
+    Ok(())
 }
 
 fn fresh_uuid(mut uuid: String, username: &str, file: &PathBuf) -> Result<String, Box<dyn Error>> {
@@ -281,9 +279,9 @@ fn fresh_uuid(mut uuid: String, username: &str, file: &PathBuf) -> Result<String
     let media_point = format!("/media/{}", username); 
     if let Some(file_str) = file.as_os_str().to_str() {
         if file_str.contains(&media_point) {
-        // check uuid against file path
-        // This passes only the device label in /media/{username}/{label} as this device has 
-        // recently been mounted
+            // check uuid against file path
+            // This passes only the device label in /media/{username}/{label} as this device has 
+            // recently been mounted
             if let Some(item) = file.components().nth(2) {
                 if let Some(used_device_label) = item.as_os_str().to_str() {
                     uuid = match_mountpoint(used_device_label)?
@@ -314,18 +312,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     logi!("Initialising");
     logi!("Loggers initialised");
-   
+
 
     // Preset model to "pro" version so that all features are enabled if the model details 
     // cannot be found
     let mut model: Model = Model::Pro;
     // read model type
     if let Ok(model_name) = fs::read_to_string("/etc/adaptableos/MODEL") {
-       model = match model_name.trim().to_lowercase().as_str() {
+        model = match model_name.trim().to_lowercase().as_str() {
             "eco" => Model::Eco,
             "standard" => Model::Standard,
             &_ => Model::Pro
-       }
+        }
     } else {
         logw!("No Adaptable model set at /etc/adaptableos/MODEL. Default model Pro will be used.");
     }
@@ -364,7 +362,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut friday: Weekday = Weekday::Friday(Vec::with_capacity(2));
     let mut saturday: Weekday = Weekday::Saturday(Vec::with_capacity(2));
     let mut sunday: Weekday = Weekday::Sunday(Vec::with_capacity(2));
-    
+
     if env_dir_path.exists() {
         if dotenvy::from_path_override(env_dir_path.as_path()).is_err() {
             loge!("Cannot find env vars at path: {}", env_dir_path.display());
@@ -419,10 +417,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     LandingWidget::new(model.clone()).run(&mut terminal)?;
     // returns Ok(ProcType) e.g. Ok(ProcType::Video)
-    
+
     let proctype = ProcTypeWidget::new(model.clone(), proc_type).run(&mut terminal)?;
     let can_be_dir: bool = matches!(&proctype, ProcType::Slideshow);
-    
+
     if proctype == ProcType::Web {
         //returns Ok(String);
         web_url = WebWidget::new(web_url, mounted_drives.clone())?.run(&mut terminal)?;
@@ -431,16 +429,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         let proctype_clone = proctype.clone();
         file = FileSelectWidget::new(model, file, can_be_dir, proctype_clone, mounted_drives.clone())?.run(&mut terminal)?;
 
-       uuid = fresh_uuid(uuid, &username, &file)?; 
+        uuid = fresh_uuid(uuid, &username, &file)?; 
     }
-    
+
     let advanced_schedule = AdvancedScheduleWidget::new(schedule).run(&mut terminal)?;
 
     if advanced_schedule == AdvancedSchedule::Yes {
         //returns Ok(Timings)
         timings = TimingsWidget::new(timings, mounted_drives)?.run(&mut terminal)?;
     }
-    
+
     let is_media_type: bool = matches!( &proctype, ProcType::Video | ProcType::Audio);
 
     // return Ok(Autoloop) e.g. Ok(Autoloop::No)
@@ -453,7 +451,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(e) = write_task(task) {
         loge!("Error writing tasks to env file: {}", e);
     }
-    
+
     // loading issues the command to enable the mediatimer_init service
     LoadingWidget::default().run(&mut terminal)?;
 
@@ -481,29 +479,29 @@ mod tests {
     fn check_to_weekday() {
         let weekday = to_weekday(String::new(), Weekday::Monday(Vec::new())).unwrap();
         assert_eq!(weekday, Weekday::Monday(Vec::new()));
-        
+
         let weekday = to_weekday(String::from("10:00:00-11:00:00"), Weekday::Tuesday(Vec::new())).unwrap();
         let schedule = vec!((String::from("10:00:00"), String::from("11:00:00")));
         assert_eq!(weekday, Weekday::Tuesday(schedule));
-        
+
 
         let weekday = to_weekday(String::from("10:00:00-11:00:00,11:00:01-12:12:12"), Weekday::Wednesday(Vec::new())).unwrap();
         let schedule = vec!(
             (String::from("10:00:00"), String::from("11:00:00")),
             (String::from("11:00:01"), String::from("12:12:12"))
-            );
+        );
         assert_eq!(weekday, Weekday::Wednesday(schedule));
 
         let weekday = to_weekday(String::from(" 10:00:00-11:00:00 , 11:00:01-12:12:12"), Weekday::Thursday(Vec::new())).unwrap();
         let schedule = vec!(
             (String::from("10:00:00"), String::from("11:00:00")),
             (String::from("11:00:01"), String::from("12:12:12"))
-            );
+        );
         assert_eq!(weekday, Weekday::Thursday(schedule));
     }
 
 
-     #[test]
+    #[test]
     fn test_write_task() {
         // Create a temporary directory to use as home directory for the test
         let temp_dir = tempdir().expect("Failed to create temp directory");

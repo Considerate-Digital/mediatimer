@@ -24,6 +24,7 @@ use crate::{
 use crate::Timings;
 
 pub fn import_schedule(schedule_path: PathBuf) -> Result<Vec<Weekday>, Box<dyn Error>>  {
+    logi!("Importing schedule");
     // set up the config vars
     let timings: Timings = Vec::with_capacity(7);
     let mut monday: Weekday = Weekday::Monday(Vec::with_capacity(2));
@@ -41,14 +42,13 @@ pub fn import_schedule(schedule_path: PathBuf) -> Result<Vec<Weekday>, Box<dyn E
         // parse the environmental vars
         for (key, value) in env::vars() {
             match key.as_str() {
-                // TODO re-implement result return values
-                "MT_MONDAY" => monday = to_weekday(value, Weekday::Monday(Vec::new())).expect("weekday not parsed"),
-                "MT_TUESDAY" => tuesday = to_weekday(value, Weekday::Tuesday(Vec::new())).expect("weekday not parsed"),
-                "MT_WEDNESDAY" => wednesday = to_weekday(value, Weekday::Wednesday(Vec::new())).expect("weekday not parsed"),
-                "MT_THURSDAY" => thursday = to_weekday(value, Weekday::Thursday(Vec::new())).expect("weekday not parsed"),
-                "MT_FRIDAY" => friday = to_weekday(value, Weekday::Friday(Vec::new())).expect("weekday not parsed"),
-                "MT_SATURDAY" => saturday = to_weekday(value, Weekday::Saturday(Vec::new())).expect("weekday not parsed"),
-                "MT_SUNDAY" => sunday = to_weekday(value, Weekday::Sunday(Vec::new())).expect("weekday not parsed"),
+                "MT_MONDAY" => monday = to_weekday(value, Weekday::Monday(Vec::new()))?,
+                "MT_TUESDAY" => tuesday = to_weekday(value, Weekday::Tuesday(Vec::new()))?,
+                "MT_WEDNESDAY" => wednesday = to_weekday(value, Weekday::Wednesday(Vec::new()))?,
+                "MT_THURSDAY" => thursday = to_weekday(value, Weekday::Thursday(Vec::new()))?,
+                "MT_FRIDAY" => friday = to_weekday(value, Weekday::Friday(Vec::new()))?,
+                "MT_SATURDAY" => saturday = to_weekday(value, Weekday::Saturday(Vec::new()))?,
+                "MT_SUNDAY" => sunday = to_weekday(value, Weekday::Sunday(Vec::new()))?,
                 _ => {}
             }
         }

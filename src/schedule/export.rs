@@ -22,17 +22,12 @@ use crate::{
     logi,
     logw
 };
-//TODO import this func from main
-// This function should be converted to a closure
-fn format_print_day_schedule(day: String, schedule: Schedule, mut file: fs::File) -> Result<(), Box<dyn Error>> {
-    let day_times_fmt: Vec<String> = schedule.iter().map(|i| format!("{}-{}", i.0, i.1)).collect();
-    let _write_file = writeln!(file, "MT_{}={}", day.to_uppercase(), day_times_fmt.join(","))?;
-    Ok(())
-}
+use crate::{format_print_day_schedule};
 
 // accepts one arg: a full week schedule as TimingCollection vec<TimingsEntry>
 // result return type temporarily removed
 pub fn export_schedule(timings: Vec<Weekday>) -> Result<(), Box<dyn Error>> {
+    logi!("Exporting schedule");
     // assembles schedule and writes it to file
    if let Some(dir) = home::home_dir() {
         // check if dir exists

@@ -855,12 +855,6 @@ impl TimingsWidget {
                             let t = self.parse_timing_from_input();
                             // add the new timing to the list
                             self.list_element_entries.list[self.weekday_selected].timings.timing_collection.push(t);
-                            // TODO select the timing just created
-                            // find the timing in the list
-                            //let i = self.list_element_entries.list[self.weekday_selected].timings.timing_collection.iter().position(|t| <Timing as Clone>::clone(&t).format() == self.input).unwrap();
-                            // set the selected timing on the widget wrapper
-                            //self.timing_selected = i;
-
                             self.reverse_state();
                             self.input.clear();
                             self.character_index = 0;
@@ -1227,8 +1221,6 @@ impl TimingsWidget {
         }
     }
 
-    // TODO cursor movement is not yet implemented due to having to set the position on the 
-    // frame, and needed to pass the frame to the render function somehow
     fn move_cursor_left(&mut self) {
         let cursor_moved_left = self.character_index.saturating_sub(1);
         self.character_index = self.clamp_cursor(cursor_moved_left);
