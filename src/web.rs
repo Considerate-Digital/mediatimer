@@ -412,7 +412,6 @@ impl WebWidget {
                     KeyCode::Enter if !is_dir => {
                         let current_path_buf = self.file_explorer.current().path().to_path_buf();
                         self.selected_file = current_path_buf;
-                        // TODO read file here
                         let file = fs::File::open(&self.selected_file)?;
                         let reader = BufReader::new(file);
                         let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
